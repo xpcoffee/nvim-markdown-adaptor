@@ -1,7 +1,9 @@
 # nvim-markdown-adaptor
 nvim plugin which adapts markdown files to external targets
 
-## goals
+> WIP. This repo doesn't do anything currenlty.
+
+## goals (as of 2024-06)
 
  - be able to sync a markdown file to/from a target, initially google-docs
 
