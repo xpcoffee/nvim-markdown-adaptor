@@ -1,5 +1,5 @@
-local greet = require('nvim-markdown-adaptor.buffer')
+local buffer = require('nvim-markdown-adaptor.buffer')
 
 return {
-    greet = greet
+    convertFile = buffer.convertFile
 }
