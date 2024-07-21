@@ -9,7 +9,49 @@ nvim plugin which adapts markdown files to external targets
 
 ## research
 
-### 2024-06-19 Pandoc workflow
+### 2024-07-21 Treesitter
+
+nvim has [treesitter](https://neovim.io/doc/user/treesitter.html), which gives access to a syntax tree.
+
+We could reduce markdown nodes in the tree to a set of [Google docs update requests](https://developers.google.com/docs/api/reference/rest/v1/documents/request#Request) and batch update using those requests.
+
+This is roughly what I'm thinking for creating a new doc
+```
+# pseudocode
+func bufferToUpdateRequests() {
+  var gdocUpdateRequests = []
+  for mdNode in vim.buff.tree.nodes {
+    gdocUpdateRequests.push(
+       toGdocRequest(mdNode)
+    )
+  }
+  return gdocUpdateRequests
+}
+
+var gdocId = GDocsApi.createNewDocument()
+var updates = bufferToUpdateRequests()
+GDocsApi.batchUpdate(gdocId, updates)
+
+# link to the document is saved in frontmatter
+updateOrCreateFrontMatterWithGdocId(gdocId)
+```
+
+Updating a doc seems tricky. As a first step I think deleting all contents of a doc and re-uploading is simplest.
+> note: we don't want to delete the doc and create a new one, as we'll be sharing that doc's ID with people and we want that to stay unchanged
+```
+# pseudocode
+var gdocId = getGdocIdFromFrontMatter()
+
+var body = GDocsApi.get(gdocId).body
+var bodyRange = GDocs.Range(body.start, body.end)
+GDocsApi.deleteContentRange(bodyRange)
+
+var updates = bufferToUpdateRequests()
+GDocsApi.batchUpdate(gdocId, updates)
+```
+
+
+### 2024-06-19 [discarded] Pandoc workflow
 
 Idea
 - convert buffer to some document format (odt/docx) using pandoc
