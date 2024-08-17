@@ -3,6 +3,8 @@ local M = {}
 local FRONTMATTER_GOOGLE_DOC_ID_KEY = 'google-doc-id'
 
 local curl = require("plenary.curl")
+local uv = vim.loop
+
 
 local function getRootNode()
   local node = vim.treesitter.get_node({ pos = { 0, 0 } })
@@ -183,13 +185,74 @@ local function bufferToCommands()
   end
 end
 
+local read_file = function(path, callback)
+  uv.fs_open(path, "r", 438, function(err, fd)
+    assert(not err, err)
+    if (fd == nil) then
+      return
+    end
+
+    uv.fs_fstat(fd, function(err, stat)
+      assert(not err, err)
+      if (stat == nil) then
+        return
+      end
+
+      uv.fs_read(fd, stat.size, 0, function(err, data)
+        assert(not err, err)
+        uv.fs_close(fd, function(err)
+          assert(not err, err)
+          callback(data)
+        end)
+      end)
+    end)
+  end)
+end
+
 local googleDocs = {
   apiKey = "AIzaSyA3I1gibID13FmT6H6Nrh6-g-O_TmPLgzg",
-  clientId = "1061313657775-3tvcrig9qi4lhe0331pgmme8bsgj0pti.apps.googleusercontent.com"
+  clientId = "1061313657775-3tvcrig9qi4lhe0331pgmme8bsgj0pti.apps.googleusercontent.com",
+  clientSecretsFile = "/home/rick/.nvim-extension-client-secret.json"
 }
 
+googleDocs.getClientSecret = function(this, params)
+  read_file(this.clientSecretsFile, function(data)
+    local secretsData = vim.json.decode(data)
+    params.callback(secretsData.installed.client_secret)
+  end)
+end
+
+googleDocs.oAuth2 = function(this, params)
+  print("Authorizing access to Google Docs...")
+
+  googleDocs:getClientSecret({
+    callback = function(client_secret)
+      print("secret " .. client_secret)
+
+      -- check if we have access token
+      --  - true: return
+      --  - false: check if we have refresh token
+      --      - true:
+      --        - call exchange endpoint to get access token
+      --        - store access token in this session
+      --      - false:
+      --        - prepare url for oauth2 consent
+      --        - start http listener to listen to loopback call
+      --        - prompt user to open in browser
+      --        - on loopback call recieved
+      --          - store refresh token
+      --          - call exchange endpoint to get access token
+      --          - store access token in this session
+      --
+
+      print("Google authorization successful")
+      params.callback()
+    end
+  })
+end
+
 googleDocs.get = function(this, params)
-  print(params.documentId)
+  print("fetching details for " .. params.documentId)
   local url = ("https://docs.googleapis.com/v1/documents/" ..
     params.documentId .. "?key=" .. this.apiKey)
 
@@ -203,27 +266,8 @@ googleDocs.get = function(this, params)
   curl.get(url, { callback = onResponse })
 end
 
-googleDocs.oAuth2 = function(this, params)
-  -- check if we have access token
-  --  - true: return
-  --  - false: check if we have refresh token
-  --      - true:
-  --        - call exchange endpoint to get access token
-  --        - store access token in this session
-  --      - false:
-  --        - prepare url for oauth2 consent
-  --        - start http listener to listen to loopback call
-  --        - prompt user to open in browser
-  --        - on loopback call recieved
-  --          - store refresh token
-  --          - call exchange endpoint to get access token
-  --          - store access token in this session
-
-  print("Google authorization successful")
-  params.callback()
-end
-
 function replaceGoogleDocContents(document)
+  print("replacing contents of " .. document.id)
   local elements = document.body.content
   local documentRange = {
     startIndex = 0,
