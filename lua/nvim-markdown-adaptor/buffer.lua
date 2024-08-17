@@ -183,65 +183,90 @@ local function bufferToCommands()
   end
 end
 
-
 local googleDocs = {
-  apiKey = "AIzaSyA3I1gibID13FmT6H6Nrh6-g-O_TmPLgzg"
+  apiKey = "AIzaSyA3I1gibID13FmT6H6Nrh6-g-O_TmPLgzg",
+  clientId = "1061313657775-3tvcrig9qi4lhe0331pgmme8bsgj0pti.apps.googleusercontent.com"
 }
 
-googleDocs.get = function(this, request, callback)
-  print(request.documentId)
+googleDocs.get = function(this, params)
+  print(params.documentId)
   local url = ("https://docs.googleapis.com/v1/documents/" ..
-    request.documentId .. "?key=" .. this.apiKey)
+    params.documentId .. "?key=" .. this.apiKey)
 
   --- FIXME: currently failing  with 401 here
   local onResponse = vim.schedule_wrap(function(response)
     print(vim.json.encode(response))
     local body = vim.json.decode(response.body)
-    callback(body)
+    params.callback(body)
   end)
 
   curl.get(url, { callback = onResponse })
 end
 
-local function replaceDocContents()
-  local docId = "1MlkhxLgUxsol_zN6Irhy6jhcPSPZLKulBMV-YPSU6Bg"
+googleDocs.oAuth2 = function(this, params)
+  -- check if we have access token
+  --  - true: return
+  --  - false: check if we have refresh token
+  --      - true:
+  --        - call exchange endpoint to get access token
+  --        - store access token in this session
+  --      - false:
+  --        - prepare url for oauth2 consent
+  --        - start http listener to listen to loopback call
+  --        - prompt user to open in browser
+  --        - on loopback call recieved
+  --          - store refresh token
+  --          - call exchange endpoint to get access token
+  --          - store access token in this session
 
-  googleDocs:get({ documentId = docId }, function(document)
-    local elements = document.body.content
-    local documentRange = {
-      startIndex = 0,
-      endIndex = elements[#elements].endIndex
-    }
+  print("Google authorization successful")
+  params.callback()
+end
 
-    local batchUpdateRequest = vim.json.encode({
-      documentId = docId,
-      requests = {
-        {
-          deleteContentRange = {
-            range = documentRange
-          }
-        },
-        {
-          insertText = {
-            text = "hello world!\nhow are ya!"
-          }
-        },
-        {
-          insertText = {
-            text = "bonjour monde!"
-          }
+function replaceGoogleDocContents(document)
+  local elements = document.body.content
+  local documentRange = {
+    startIndex = 0,
+    endIndex = elements[#elements].endIndex
+  }
+
+  local batchUpdateRequest = vim.json.encode({
+    documentId = document.id,
+    requests = {
+      {
+        deleteContentRange = {
+          range = documentRange
         }
       },
-    })
+      {
+        insertText = {
+          text = "hello world!\nhow are ya!"
+        }
+      },
+      {
+        insertText = {
+          text = "bonjour monde!"
+        }
+      }
+    },
+  })
 
-    print(batchUpdateRequest)
-    -- googleDocs:batchUpdate(batchUpdateRequest)
-  end
-  )
+  print(batchUpdateRequest)
+end
+
+local function updateGoogleDoc()
+  local docId = "1MlkhxLgUxsol_zN6Irhy6jhcPSPZLKulBMV-YPSU6Bg"
+
+  googleDocs:oAuth2({
+    callback = googleDocs:get({
+      documentId = docId,
+      callback = replaceGoogleDocContents
+    })
+  })
 end
 
 M.convertFile = function()
-  replaceDocContents()
+  vim.schedule_wrap(updateGoogleDoc)()
 end
 
 return M
