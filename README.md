@@ -9,6 +9,26 @@ nvim plugin which adapts markdown files to external targets
 
 ## research
 
+### 2024-08-18 OAuth2
+
+Since last time:
+ - [x] use treesitter's syntax tree to generate a list of entities
+ - [x] make calls against google api from the plugin
+   - uses plenary's curl
+   - not authorized, so currently returns a 401
+ - [x] figure out format for updating google doc
+    - [get content range of document](https://developers.google.com/docs/api/reference/rest/v1/documents/get)
+    - [batch update](https://developers.google.com/docs/api/reference/rest/v1/documents/request): delete content, list of requests to insert new content
+ - [ ] figure out how to perform oauth2 flow to authorize the plugin to update docs
+    - [X] generate auth URL
+    - [X] generate redirect URL (gets called after user gives consent)
+    - [ ] have an endpoint where we listen for the redirect <--- this is currently a blocker; attempts to spin up a server from within the plugin have not been successful
+       - [this happens here](https://github.com/googlesamples/oauth-apps-for-windows/blob/master/OAuthConsoleApp/OAuthConsoleApp/Program.cs#L99) in examples, but I don't see equivalent tooling for lua...
+       - tried pegasus server & spinning it up both using `uv.new_work` (pegasus not available in thread), `uv.new_thread` (cross-boundary c-calls), and `plenary.async.wrap + run` (pegasus not available in thread)
+       - next step: separate server binary that gets invoked? need a communication between them
+    - [ ] store the refresh token
+    - [ ] exchange refresh token for an access token
+
 ### 2024-07-21 Treesitter
 
 nvim has [treesitter](https://neovim.io/doc/user/treesitter.html), which gives access to a syntax tree.
