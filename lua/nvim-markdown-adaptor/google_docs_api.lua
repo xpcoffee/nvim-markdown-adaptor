@@ -1,5 +1,5 @@
 local M = {
-  api_key = "AIzaSyA3I1gibID13FmT6H6Nrh6-g-O_TmPLgzg",
+  api_key = "nope",
   client_id = "1061313657775-3tvcrig9qi4lhe0331pgmme8bsgj0pti.apps.googleusercontent.com",
   client_secrets_file = "/home/rick/.nvim-extension-client-secret.json" -- TODO: generalize
 }
@@ -105,5 +105,4 @@ M.get = function(this, params)
 
   curl.get(url, { callback = on_response })
 end
-
 return M
