@@ -45,7 +45,8 @@ local function update_gdoc()
 
   -- update google docs
   local docId = "1MlkhxLgUxsol_zN6Irhy6jhcPSPZLKulBMV-YPSU6Bg"
-  gapi:oAuth2({
+
+  gapi:oAuth2({ -- currently broken: need to finish auth
     callback = gapi:get({
       documentId = docId,
       callback = function(doc) replace_gdoc_contents(doc, update_requests) end

@@ -1,7 +1,7 @@
 local M = {
   api_key = "AIzaSyA3I1gibID13FmT6H6Nrh6-g-O_TmPLgzg",
   client_id = "1061313657775-3tvcrig9qi4lhe0331pgmme8bsgj0pti.apps.googleusercontent.com",
-  client_secrets_file = "/home/rick/.nvim-extension-client-secret.json"
+  client_secrets_file = "/home/rick/.nvim-extension-client-secret.json" -- TODO: generalize
 }
 
 local curl = require "plenary.curl"
@@ -54,7 +54,7 @@ function M.get_authorization_url(this)
 
   return endpoint .. "?response_type=code" ..
       "&scope=openid%20profile" ..
-      "&redirect_uri=" .. redirect_uri
+      "&redirect_uri=" .. redirect_uri -- should be local running server.. how to do this?
       "&client_id=" .. this.client_id
       "&state=" .. state
       "&code_challenge=" .. codeChallenge
