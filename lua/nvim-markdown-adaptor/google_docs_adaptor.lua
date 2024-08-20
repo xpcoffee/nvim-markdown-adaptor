@@ -7,7 +7,6 @@ local utils = require "nvim-markdown-adaptor.utils"
 --- @param document table
 --- @param update_requests table
 local function replace_gdoc_contents(document, update_requests)
-  print("replacing contents of " .. document.id)
   local elements = document.body.content
   local document_range = {
     startIndex = 0,
@@ -38,10 +37,10 @@ end
 local function update_gdoc()
   local elements = parser.parse_current_buffer()
   local update_requests = to_gdocs_update_requests(elements)
-  if #update_requests == 0 then
-    print("Empty requests. Stopping.")
-    return
-  end
+  -- if #update_requests == 0 then
+  --   print("Empty requests. Stopping.")
+  --   return
+  -- end
 
   -- update google docs
   local docId = "1MlkhxLgUxsol_zN6Irhy6jhcPSPZLKulBMV-YPSU6Bg"
@@ -55,7 +54,9 @@ local function update_gdoc()
 end
 
 M.adapt_current_buffer = function()
-  vim.schedule_wrap(update_gdoc)()
+  gapi:prepare_authorization_url() -- calls vimscripts, which needs to be done in main thread
+  update_gdoc()
+  -- vim.schedule_wrap(update_gdoc)()
 end
 
 return M

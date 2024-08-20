@@ -30,35 +30,28 @@ local function encode_base64(data)
   end) .. ({ '', '==', '=' })[#data % 3 + 1])
 end
 
-local charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
-local function generate_random_data(length)
-  if length > 0 then
-    return generate_random_data(length - 1) .. charset:sub(math.random(1, #charset), 1)
-  else
-    return ""
-  end
-end
+M.prepare_authorization_url = function(this)
+  -- Generates state and PKCE values.
+  local state = vim.fn.rand();
+  local codeVerifier = vim.fn.rand();
+  local codeChallenge = encode_base64(vim.fn.sha256(codeVerifier));
+  local codeChallengeMethod = "S256";
+  local endpoint = "https://accounts.google.com/o/oauth2/v2/auth"
+  local redirect_uri = "http://localhost:9090/hello"
 
-local function generate_random_data_base64(length)
-  return encode_base64(generate_random_data(length))
+  this.authorization_url = endpoint .. "?response_type=code" ..
+      "&scope=openid%20profile" ..
+      "&redirect_uri=" .. redirect_uri .. -- should be local running server.. how to do this?
+      "&client_id=" .. this.client_id ..
+      "&state=" .. state ..
+      "&code_challenge=" ..
+      codeChallenge:gsub("=", "") .. -- note: pkce doesn't want base64 padding https://www.rfc-editor.org/rfc/rfc7636#appendix-A
+      "&code_challenge_method=" .. codeChallengeMethod
 end
 
 
 function M.get_authorization_url(this)
-  -- Generates state and PKCE values.
-  local state = generate_random_data_base64(32);
-  local codeVerifier = generate_random_data_base64(32);
-  -- local codeChallenge = Base64UrlEncodeNoPadding(Sha256Ascii(codeVerifier));
-  local codeChallengeMethod = "S256";
-  local endpoint = "https://accounts.google.com/o/oauth2/v2/auth"
-
-  return endpoint .. "?response_type=code" ..
-      "&scope=openid%20profile" ..
-      "&redirect_uri=" .. redirect_uri -- should be local running server.. how to do this?
-      "&client_id=" .. this.client_id
-      "&state=" .. state
-      "&code_challenge=" .. codeChallenge
-      "&code_challenge_method=" .. codeChallengeMethod
+  return this.authorization_url
 end
 
 M.oAuth2 = function(this, params)
@@ -68,6 +61,14 @@ M.oAuth2 = function(this, params)
   M:load_secrets({
     callback = function()
       print("Auth url: " .. M:get_authorization_url())
+      vim.ui.select({ "yes", "no" }, {
+          prompt = "Need to authorize in brower. Continue?"
+        },
+        function()
+          local url = M:get_authorization_url()
+          vim.ui.open(url)
+        end
+      )
 
       -- check if we have access token
       --  - true: return
