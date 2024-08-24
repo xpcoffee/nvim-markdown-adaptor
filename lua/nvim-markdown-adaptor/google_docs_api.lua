@@ -1,7 +1,8 @@
 local M = {
   api_key = "nope",
   client_id = "1061313657775-3tvcrig9qi4lhe0331pgmme8bsgj0pti.apps.googleusercontent.com",
-  client_secrets_file = "/home/rick/.nvim-extension-client-secret.json" -- TODO: generalize
+  client_secrets_file = "/home/rick/.nvim-extension-client-secret.json", -- TODO: generalize
+  redirect_uri = "http://localhost:9090/oauth2"
 }
 
 local curl = require "plenary.curl"
@@ -32,38 +33,40 @@ local function encode_base64(data)
   end) .. ({ '', '==', '=' })[#data % 3 + 1])
 end
 
-M.prepare_authorization_url = function(this)
+M.seed_auth_state = function(this)
   -- Generates state and PKCE values.
-  local state = vim.fn.rand();
-  local codeVerifier = vim.fn.rand();
-  local codeChallenge = encode_base64(vim.fn.sha256(codeVerifier));
-  local codeChallengeMethod = "S256";
-  local endpoint = "https://accounts.google.com/o/oauth2/v2/auth"
-  local redirect_uri = "http://localhost:9090/oauth2"
 
-  this.authorization_url = endpoint .. "?response_type=code" ..
-      "&scope=https://www.googleapis.com/auth/documents" ..
-      "&redirect_uri=" .. redirect_uri ..
-      "&client_id=" .. this.client_id ..
-      "&state=" .. state ..
-      "&code_challenge=" ..
-      codeChallenge:gsub("=", "") .. -- note: pkce doesn't want base64 padding https://www.rfc-editor.org/rfc/rfc7636#appendix-A
-      "&code_challenge_method=" .. codeChallengeMethod
+  local code_verifier = vim.fn.rand()
+  this.auth_state = {
+    scope = "https://www.googleapis.com/auth/documents",
+    redirect_uri = this.redirect_uri,
+    state = "" .. vim.fn.rand(),
+    code_verifier = code_verifier,
+    code_challenge = encode_base64(vim.fn.sha256(code_verifier))
+  }
 end
 
 M.exchange_code_for_token = function(this, params)
+  print(vim.json.encode({ now = params.state, orig = this.auth_state.state }))
+  assert(params.state == this.auth_state.state,
+    ("Returned state <%s> does not match original state <%s>"):format(params.state, this.auth_state.state))
+
   local body = string.format(
     "code=%s&redirect_uri=%s&client_id=%s&client_secret=%s&code_verifier=%s&scope=%s&grant_type=authorization_code",
     params.code,
-    params.redirect_uri,
+    this.auth_state.redirect_uri,
     this.client_id,
     this.client_secret,
-    params.code_verifier,
-    params.scope
+    this.auth_state.code_verifier,
+    this.auth_state.scope
   )
 
-  curl.post("https://www.googleapis.com/oauth2/v4/token?", {
-    data = body,
+  -- fixeme: currently failing with invalid code verifier
+  print("exchange body " .. body)
+
+
+  curl.post("https://www.googleapis.com/oauth2/v4/token", {
+    raw_body = body,
     headers = {
       ["Content-Type"] = "application/x-www-form-urlencoded",
       ["Accept"] = "Accept=text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
@@ -91,7 +94,19 @@ end
 
 
 function M.get_authorization_url(this)
-  return this.authorization_url
+  local codeChallengeMethod = "S256";
+  local endpoint = "https://accounts.google.com/o/oauth2/v2/auth"
+
+  local authorization_url = endpoint .. "?response_type=code" ..
+      "&scope=" .. this.auth_state.scope ..
+      "&redirect_uri=" .. this.auth_state.redirect_uri ..
+      "&client_id=" .. this.client_id ..
+      "&state=" .. this.auth_state.state ..
+      "&code_challenge=" ..
+      this.auth_state.code_challenge:gsub("=", "") .. -- note: pkce doesn't want base64 padding https://www.rfc-editor.org/rfc/rfc7636#appendix-A
+      "&code_challenge_method=" .. codeChallengeMethod
+
+  return authorization_url
 end
 
 -- Full flow...
@@ -138,6 +153,11 @@ M.oAuth2 = function(this, params)
         response.state = s
       end
       print(vim.json.encode(response))
+
+      M:exchange_code_for_token({
+        code = response.code,
+        state = response.state
+      })
 
       -- todo: save access token in memory
       -- todo: store new refresh token
