@@ -5,16 +5,15 @@ local M = {
 }
 
 local curl = require "plenary.curl"
-local Job = require "plenary.job"
 local utils = require "nvim-markdown-adaptor.utils"
 
 local CWD = vim.fn.getcwd() .. "/lua/nvim-markdown-adaptor"
 
 M.load_secrets = function(this)
   utils.read_file(this.client_secrets_file, function(data)
-    local secretsData = vim.json.decode(data)
-    this.clientSecret = secretsData.installed.client_secret
-    this.client_id = secretsData.installed.client_id
+    local secrets_data = vim.json.decode(data)
+    this.client_secret = secrets_data.installed.client_secret
+    this.client_id = secrets_data.installed.client_id
   end)
 end
 M:load_secrets()
@@ -44,12 +43,50 @@ M.prepare_authorization_url = function(this)
 
   this.authorization_url = endpoint .. "?response_type=code" ..
       "&scope=https://www.googleapis.com/auth/documents" ..
-      "&redirect_uri=" .. redirect_uri .. -- should be local running server.. how to do this?
+      "&redirect_uri=" .. redirect_uri ..
       "&client_id=" .. this.client_id ..
       "&state=" .. state ..
       "&code_challenge=" ..
       codeChallenge:gsub("=", "") .. -- note: pkce doesn't want base64 padding https://www.rfc-editor.org/rfc/rfc7636#appendix-A
       "&code_challenge_method=" .. codeChallengeMethod
+end
+
+M.exchange_code_for_token = function(this, params)
+  local body = string.format(
+    "code=%s&redirect_uri=%s&client_id=%s&client_secret=%s&code_verifier=%s&scope=%s&grant_type=authorization_code",
+    params.code,
+    params.redirect_uri,
+    this.client_id,
+    this.client_secret,
+    params.code_verifier,
+    params.scope
+  )
+
+  curl.post("https://www.googleapis.com/oauth2/v4/token?", {
+    data = body,
+    headers = {
+      ["Content-Type"] = "application/x-www-form-urlencoded",
+      ["Accept"] = "Accept=text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+    },
+    callback = function(response)
+      print("exchange response")
+      print(vim.json.encode(response))
+    end
+  })
+
+  -- string tokenRequestBody = string.Format("code={0}&redirect_uri={1}&client_id={2}&code_verifier={3}&client_secret={4}&scope=&grant_type=authorization_code",
+  --     code,
+  --     Uri.EscapeDataString(redirectUri),
+  --     clientId,
+  --     codeVerifier,
+  --     clientSecret
+  --     );
+  --
+  -- // sends the request
+  -- HttpWebRequest tokenRequest = (HttpWebRequest)WebRequest.Create(tokenRequestUri);
+  -- tokenRequest.Method = "POST";
+  -- tokenRequest.ContentType =="application/x-www-form-urlencoded";
+  -- tokenRequest.Accept = "Accept=text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8";
 end
 
 
@@ -80,23 +117,28 @@ M.oAuth2 = function(this, params)
   -- todo: store new refresh token
   -- todo: early return
 
-  print("Authorizing access to Google Docs...")
 
-  print("Auth url: " .. M:get_authorization_url())
   vim.ui.select({ "yes", "no" }, {
-      prompt = "Need to authorize in brower. Continue?"
+      prompt = "Google Docs access needs to be granted via browser. Continue?"
     },
     function(choice)
       if (choice ~= "yes") then
         return
       end
 
+      print("Waiting for authorization to complete...")
       local url = M:get_authorization_url()
       vim.ui.open(url)
 
-      -- todo: pass secret & state as enviroment variables
-      local output = vim.fn.system("lua " .. CWD .. "/oauth2_listener.lua") -- not great, this is blocking in vim UI
-      print(output)
+      -- listen for the response; this will currently block until the listener process ends (not great)
+      local output = vim.fn.system("lua " .. CWD .. "/oauth2_listener.lua")
+      local response = {}
+      for c, s in output:gmatch("success,(.+),(.+)\n") do
+        response.code = c
+        response.state = s
+      end
+      print(vim.json.encode(response))
+
       -- todo: save access token in memory
       -- todo: store new refresh token
 
