@@ -57,59 +57,62 @@ function M.get_authorization_url(this)
   return this.authorization_url
 end
 
+-- Full flow...
+-- check if we have access token
+--  - true: return
+--  - false: check if we have refresh token
+--      - true:
+--        - call exchange endpoint to get access token
+--        - store access token in this session
+--      - false:
+--        - prepare url for oauth2 consent
+--        - start http listener to listen to loopback call
+--        - prompt user to open in browser
+--        - on loopback call recieved
+--          - store refresh token
+--          - call exchange endpoint to get access token
+--          - store access token in this session
+--
 M.oAuth2 = function(this, params)
+  -- todo: fetch refresh token from store if we have one
+  -- todo: if we have a refresh token: exchange refresh token for access-token/refresh token pair
+  -- todo: save access token in memory
+  -- todo: store new refresh token
+  -- todo: early return
+
   print("Authorizing access to Google Docs...")
 
   print("Auth url: " .. M:get_authorization_url())
   vim.ui.select({ "yes", "no" }, {
       prompt = "Need to authorize in brower. Continue?"
     },
-    function()
+    function(choice)
+      if (choice ~= "yes") then
+        return
+      end
+
       local url = M:get_authorization_url()
       vim.ui.open(url)
-      local output = vim.fn.system("lua " .. CWD .. "/oauth2_listener.lua")
-      print(output) -- print("cwd" .. CWD)
+
+      -- todo: pass secret & state as enviroment variables
+      local output = vim.fn.system("lua " .. CWD .. "/oauth2_listener.lua") -- not great, this is blocking in vim UI
+      print(output)
+      -- todo: save access token in memory
+      -- todo: store new refresh token
+
+      print("Google authorization successful")
+      -- todo: uncomment once oauth is working
+      -- params.callback()
     end
   )
-
-  -- -- listen for callback
-  -- local _, result_code = Job:new({
-  --   command = 'lua',
-  --   args = { 'oauth2_listener.lua' },
-  --   cwd = CWD,
-  --   on_exit = function(j, return_val)
-  --     print(return_val)
-  --     print(vim.json.encode(j:result()))
-  --   end,
-  -- }):sync()
-  -- print("code " .. result_code)
-
-  -- check if we have access token
-  --  - true: return
-  --  - false: check if we have refresh token
-  --      - true:
-  --        - call exchange endpoint to get access token
-  --        - store access token in this session
-  --      - false:
-  --        - prepare url for oauth2 consent
-  --        - start http listener to listen to loopback call
-  --        - prompt user to open in browser
-  --        - on loopback call recieved
-  --          - store refresh token
-  --          - call exchange endpoint to get access token
-  --          - store access token in this session
-  --
-
-  print("Google authorization successful")
-  -- params.callback()
 end
 
+-- fetches a google doc
 M.get = function(this, params)
   print("fetching details for " .. params.documentId)
   local url = ("https://docs.googleapis.com/v1/documents/" ..
     params.documentId .. "?key=" .. this.api_key)
 
-  --- FIXME: currently failing  with 401 here
   local on_response = vim.schedule_wrap(function(response)
     print(vim.json.encode(response))
     local body = vim.json.decode(response.body)
