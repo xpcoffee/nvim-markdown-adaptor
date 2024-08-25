@@ -10,6 +10,26 @@ nvim plugin which adapts markdown files to external targets
 
 ## research
 
+### 2024-08-25
+
+Now know how to do an Oauth flow
+
+- [x] figure out how to perform oauth2 flow to authorize the plugin to update docs
+  - [x] have an endpoint where we listen for the redirect
+    - [x] start pegasus server from vim
+  - [x] exchange code for an access token & refresh in pegasus server
+  - [x] return access token & refresh token to vim
+  - [x] store the refresh token
+
+Corners cut
+
+- using plain code verifier instead of SHA256 (was getting stuck on the latter; what we want is a proof-of-concept so deferring the encrypted challenge)
+
+Next steps
+
+- transform parser output into google docs commands
+- update a doc
+
 ### 2024-08-24
 
 Minor progress...
