@@ -42,7 +42,11 @@ M.seed_auth_state = function(this)
     redirect_uri = this.redirect_uri,
     state = "" .. vim.fn.rand(),
     code_verifier = code_verifier,
-    code_challenge = encode_base64(vim.fn.sha256(code_verifier))
+    code_challenge_method = "plain",
+    code_challenge = code_verifier,
+    -- todo: get SHA256 verifier to work... think there's a problem with base64 or the sha hashing
+    -- code_challenge_method = "SHA256",
+    -- code_challenge = encode_base64(vim.fn.sha256(code_verifier)):gsub("=", "") .. -- note: pkce doesn't want base64 padding https://www.rfc-editor.org/rfc/rfc7636#appendix-A
   }
 end
 
@@ -51,50 +55,38 @@ M.exchange_code_for_token = function(this, params)
   assert(params.state == this.auth_state.state,
     ("Returned state <%s> does not match original state <%s>"):format(params.state, this.auth_state.state))
 
-  local body = string.format(
-    "code=%s&redirect_uri=%s&client_id=%s&client_secret=%s&code_verifier=%s&scope=%s&grant_type=authorization_code",
-    params.code,
-    this.auth_state.redirect_uri,
-    this.client_id,
-    this.client_secret,
-    this.auth_state.code_verifier,
-    this.auth_state.scope
-  )
+  local body = "code=" .. params.code ..
+      "&client_id=" .. this.client_id ..
+      "&client_secret=" .. this.client_secret ..
+      "&redirect_uri=" .. this.auth_state.redirect_uri .. -- unclear what this needs to be
+      "&code_verifier=" .. this.auth_state.code_verifier ..
+      "&grant_type=authorization_code"
+
 
   -- fixeme: currently failing with invalid code verifier
   print("exchange body " .. body)
 
 
-  curl.post("https://www.googleapis.com/oauth2/v4/token", {
+  curl.post("https://oauth2.googleapis.com/token", {
     raw_body = body,
     headers = {
       ["Content-Type"] = "application/x-www-form-urlencoded",
-      ["Accept"] = "Accept=text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
     },
     callback = function(response)
       print("exchange response")
+
+      if response.satus ~= 200 then
+        error("Unable to authorize against Google APIs")
+        return
+      end
+
       print(vim.json.encode(response))
     end
   })
-
-  -- string tokenRequestBody = string.Format("code={0}&redirect_uri={1}&client_id={2}&code_verifier={3}&client_secret={4}&scope=&grant_type=authorization_code",
-  --     code,
-  --     Uri.EscapeDataString(redirectUri),
-  --     clientId,
-  --     codeVerifier,
-  --     clientSecret
-  --     );
-  --
-  -- // sends the request
-  -- HttpWebRequest tokenRequest = (HttpWebRequest)WebRequest.Create(tokenRequestUri);
-  -- tokenRequest.Method = "POST";
-  -- tokenRequest.ContentType =="application/x-www-form-urlencoded";
-  -- tokenRequest.Accept = "Accept=text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8";
 end
 
 
 function M.get_authorization_url(this)
-  local codeChallengeMethod = "S256";
   local endpoint = "https://accounts.google.com/o/oauth2/v2/auth"
 
   local authorization_url = endpoint .. "?response_type=code" ..
@@ -103,8 +95,8 @@ function M.get_authorization_url(this)
       "&client_id=" .. this.client_id ..
       "&state=" .. this.auth_state.state ..
       "&code_challenge=" ..
-      this.auth_state.code_challenge:gsub("=", "") .. -- note: pkce doesn't want base64 padding https://www.rfc-editor.org/rfc/rfc7636#appendix-A
-      "&code_challenge_method=" .. codeChallengeMethod
+      this.auth_state.code_challenge ..
+      "&code_challenge_method=" .. this.auth_state.code_challenge_method
 
   return authorization_url
 end
