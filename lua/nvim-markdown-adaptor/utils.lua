@@ -14,24 +14,63 @@ end
 
 -- Reads the contents of a file and returns them in a callback
 M.read_file = function(path, callback)
-  uv.fs_open(path, "r", 438, function(err, fd)
+  local permission = 256 -- 0400 in octal; only user can read
+  uv.fs_open(path, "r", permission, function(err, fd)
     assert(not err, err)
+    if err then
+      error(err)
+      callback(nil)
+      return
+    end
+
     if (fd == nil) then
       return
     end
 
     uv.fs_fstat(fd, function(err, stat)
-      assert(not err, err)
+      if err then
+        error(err)
+        callback(nil)
+        return
+      end
+
       if (stat == nil) then
         return
       end
 
       uv.fs_read(fd, stat.size, 0, function(err, data)
-        assert(not err, err)
+        if err then
+          error(err)
+          callback(nil)
+          return
+        end
+
         uv.fs_close(fd, function(err)
-          assert(not err, err)
-          callback(data)
+          if not err then
+            callback(data)
+          else
+            error(err)
+            callback(nil)
+          end
         end)
+      end)
+    end)
+  end)
+end
+
+M.write_file = function(path, file_contents, callback)
+  local permission = 384 -- 0600 in octal; only user can read/write
+  uv.fs_open(path, "w", permission, function(err, fd)
+    assert(not err, err)
+    if (fd == nil) then
+      return
+    end
+
+    uv.fs_write(fd, file_contents, 0, function(err)
+      assert(not err, err)
+      uv.fs_close(fd, function(err)
+        assert(not err, err)
+        callback()
       end)
     end)
   end)

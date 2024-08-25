@@ -56,7 +56,6 @@ local function update_gdoc()
 end
 
 M.adapt_current_buffer = function()
-  gapi:seed_auth_state() -- calls vimscripts, which needs to be done in main thread
   update_gdoc()
   -- vim.schedule_wrap(update_gdoc)()
 end
