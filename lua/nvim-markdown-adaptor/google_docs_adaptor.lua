@@ -8,6 +8,7 @@ local utils = require "nvim-markdown-adaptor.utils"
 --- @param update_requests table
 local function replace_gdoc_contents(document, update_requests)
   local elements = document.body.content
+  print(vim.json.encode(elements))
   local document_range = {
     startIndex = 1,
     endIndex = elements[#elements].endIndex - 1 -- not the newline character at the end
@@ -27,13 +28,24 @@ local function replace_gdoc_contents(document, update_requests)
   gapi:batch_update({ requests = requests, document_id = document.documentId })
 end
 
-local function to_gdocs_update_requests(commands)
+local function to_gdocs_update_requests(commands, opts)
   local requests = {}
+  local tabs = 0 -- see handling of list commands to see how this is used
+
   local index = 1
+  if opts and opts.index then
+    index = opts.index
+  end
 
   for _, command in pairs(commands) do
     if command.type == "paragraph" then
-      local text = command.content .. "\n"
+      local text = ""
+      for _ = 1, command.indent, 1 do
+        text = text .. "\t"
+      end
+      text = text .. command.content .. "\n"
+      tabs = tabs + command.indent
+
       table.insert(requests, {
         insertText = {
           text = text,
@@ -107,9 +119,41 @@ local function to_gdocs_update_requests(commands)
 
       index = index + #text
     end
+
+    if command.type == "list" then
+      local list_items, nested_context = to_gdocs_update_requests(command.items, { index = index })
+      utils.insert_all(requests, list_items)
+
+
+      local bulletPreset = "BULLET_DISC_CIRCLE_SQUARE"
+      if command.is_ordered then
+        bulletPreset = "NUMBERED_DECIMAL_ALPHA_ROMAN"
+      end
+
+      if command.indent == 0 then
+        table.insert(requests, {
+          createParagraphBullets = {
+            range = {
+              startIndex = index,
+              endIndex = nested_context.index
+            },
+            bulletPreset = bulletPreset
+          }
+        })
+
+        -- tabs get removed when creating bullets; this number needs to be used to amend the index
+        -- https://developers.google.com/docs/api/reference/rest/v1/documents/request#createparagraphbulletsrequest
+        index = nested_context.index - nested_context.tabs
+      else
+        tabs = tabs + nested_context.tabs
+        index = nested_context.index
+      end
+    end
   end
 
-  return requests
+
+  local nested_context = { index = index, tabs = tabs }
+  return requests, nested_context
 end
 
 local function update_gdoc()

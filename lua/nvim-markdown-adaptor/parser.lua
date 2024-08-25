@@ -22,15 +22,22 @@ end
 ---
 ---@param node TSNode
 ---@return table
-local function parse_node(node)
+local function parse_node(node, context)
   local type = node:type()
+
+  local ctx = {}
+  if not context then
+    ctx.indent = 0
+  else
+    ctx = context
+  end
 
   if (type == 'document' or type == 'section' or type == 'stream') then
     local commands = {}
     local child_iter = node:iter_children()
     local child = child_iter()
     while child ~= nil do
-      local new_commands = parse_node(child)
+      local new_commands = parse_node(child, ctx)
       utils.insert_all(commands, new_commands)
       child = child_iter()
     end
@@ -109,7 +116,8 @@ local function parse_node(node)
     if (content ~= nil) then
       local paragraph_command = {
         type = "paragraph",
-        content = vim.treesitter.get_node_text(content, 0)
+        content = vim.treesitter.get_node_text(content, 0),
+        indent = ctx.indent
       }
       return { paragraph_command }
     else
@@ -131,14 +139,28 @@ local function parse_node(node)
     while list_item ~= nil do
       local list_item_content = list_item:child(1)
       if (list_item_content ~= nil) then
-        local newCommands = parse_node(list_item_content)
+        local newCommands = parse_node(list_item_content, ctx)
         utils.insert_all(commands, newCommands)
       end
+
+      local sub_list = list_item:child(2)
+      if sub_list and sub_list:type() == "list" then
+        local new_context = {}
+        for k, v in pairs(ctx) do
+          new_context[k] = v
+        end
+        new_context.indent = new_context.indent + 1
+
+        local newCommands = parse_node(sub_list, new_context)
+        utils.insert_all(commands, newCommands)
+      end
+
       list_item = child_iter()
     end
 
     local list_command = {
       type = "list",
+      indent = ctx.indent,
       is_ordered = is_ordered,
       items = commands
     }
@@ -174,7 +196,7 @@ end
 M.parse_current_buffer = function()
   local root_node = get_root_node()
   if root_node ~= nil then
-    return parse_node(root_node)
+    return parse_node(root_node, ctx)
   end
   return {}
 end
