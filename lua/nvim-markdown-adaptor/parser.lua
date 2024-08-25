@@ -137,13 +137,22 @@ local function parse_node(node, context)
 
     local commands = {}
     while list_item ~= nil do
-      local list_item_content = list_item:child(1)
+      local content_index = 1
+
+      local is_checkbox = list_item:child(content_index) and
+          (list_item:child(content_index):type() == "task_list_marker_checked" or list_item:child(content_index):type() == "task_list_marker_unchecked")
+      if is_checkbox then
+        content_index = content_index + 1
+      end
+
+      local list_item_content = list_item:child(content_index)
       if (list_item_content ~= nil) then
         local newCommands = parse_node(list_item_content, ctx)
         utils.insert_all(commands, newCommands)
+        content_index = content_index + 1
       end
 
-      local sub_list = list_item:child(2)
+      local sub_list = list_item:child(content_index)
       if sub_list and sub_list:type() == "list" then
         local new_context = {}
         for k, v in pairs(ctx) do

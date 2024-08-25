@@ -157,6 +157,7 @@ end
 local function update_gdoc()
   local elements = parser.parse_current_buffer()
   local update_requests = to_gdocs_update_requests(elements)
+  print(vim.json.encode(update_requests))
   if #update_requests == 0 then
     print("No content. Stopping.")
     return
