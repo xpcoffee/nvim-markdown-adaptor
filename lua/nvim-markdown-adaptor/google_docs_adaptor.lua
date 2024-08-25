@@ -8,14 +8,12 @@ local utils = require "nvim-markdown-adaptor.utils"
 --- @param update_requests table
 local function replace_gdoc_contents(document, update_requests)
   local elements = document.body.content
-  print(vim.json.encode(document.body.content))
   local document_range = {
     startIndex = 1,
     endIndex = elements[#elements].endIndex - 1 -- not the newline character at the end
   }
 
-  local requests = {
-  }
+  local requests = {}
 
   if (document_range.endIndex > 2) then
     table.insert(requests, {
@@ -24,34 +22,71 @@ local function replace_gdoc_contents(document, update_requests)
       }
     })
   end
-
   utils.insert_all(requests, update_requests)
-  utils.insert_all(requests, { {
-    ["insertText"] = {
-      ["text"] = "hello, world!",
-      ["location"] = {
-        ["index"] = 1
-      }
-    }
-  } })
-
-  local batch_update_request = vim.json.encode
 
   gapi:batch_update({ requests = requests, document_id = document.documentId })
 end
 
 local function to_gdocs_update_requests(commands)
-  print(vim.json.encode(commands))
-  return {}
+  local requests = {}
+  local index = 1
+
+  for _, command in pairs(commands) do
+    if command.type == "paragraph" then
+      local text = command.content .. "\n"
+      table.insert(requests, {
+        insertText = {
+          text = text,
+          location = {
+            index = index
+          }
+        }
+      })
+
+      index = index + #text
+    end
+
+    if command.type == "heading" then
+      local text = command.content .. "\n"
+
+      table.insert(requests, {
+        insertText = {
+          text = text,
+          location = {
+            index = index
+          }
+        }
+      })
+
+      local startIndex = index
+      local endIndex = index + #text - 1
+      table.insert(requests, {
+        updateParagraphStyle = {
+          range = {
+            startIndex = startIndex,
+            endIndex = endIndex
+          },
+          paragraphStyle = {
+            namedStyleType = "HEADING_" .. command.level
+          },
+          fields = "namedStyleType"
+        }
+      })
+
+      index = index + #text
+    end
+  end
+
+  return requests
 end
 
 local function update_gdoc()
   local elements = parser.parse_current_buffer()
   local update_requests = to_gdocs_update_requests(elements)
-  -- if #update_requests == 0 then
-  --   print("Empty requests. Stopping.")
-  --   return
-  -- end
+  if #update_requests == 0 then
+    print("Empty requests. Stopping.")
+    return
+  end
 
   -- update google docs
   local docId = "1MlkhxLgUxsol_zN6Irhy6jhcPSPZLKulBMV-YPSU6Bg"
