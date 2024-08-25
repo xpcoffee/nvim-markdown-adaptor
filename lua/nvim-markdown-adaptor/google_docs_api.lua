@@ -51,7 +51,6 @@ M.seed_auth_state = function(this)
 end
 
 M.exchange_code_for_token = function(this, params)
-  print(vim.json.encode({ now = params.state, orig = this.auth_state.state }))
   assert(params.state == this.auth_state.state,
     ("Returned state <%s> does not match original state <%s>"):format(params.state, this.auth_state.state))
 
@@ -62,25 +61,26 @@ M.exchange_code_for_token = function(this, params)
       "&code_verifier=" .. this.auth_state.code_verifier ..
       "&grant_type=authorization_code"
 
-
-  -- fixeme: currently failing with invalid code verifier
-  print("exchange body " .. body)
-
-
   curl.post("https://oauth2.googleapis.com/token", {
     raw_body = body,
     headers = {
       ["Content-Type"] = "application/x-www-form-urlencoded",
     },
     callback = function(response)
-      print("exchange response")
-
-      if response.satus ~= 200 then
+      if response.status ~= 200 then
         error("Unable to authorize against Google APIs")
         return
       end
 
-      print(vim.json.encode(response))
+      local result = vim.json.decode(response.body)
+      assert(result.access_token, "No access_token found in the OAuth response")
+      assert(result.refresh_token, "No refresh_token found in the OAuth response")
+      assert(result.scope == this.auth_state.scope, "Unexpected auth scope: " .. result.scope)
+
+      this.auth_state.access_token = result.access_token
+      print("access token " .. this.auth_state.access_token)
+      -- todo: save refresh_token so it can be read on startup
+      params.callback()
     end
   })
 end
@@ -144,28 +144,26 @@ M.oAuth2 = function(this, params)
         response.code = c
         response.state = s
       end
-      print(vim.json.encode(response))
 
       M:exchange_code_for_token({
         code = response.code,
-        state = response.state
+        state = response.state,
+        callback = function()
+          print("Google authorization successful")
+          params.callback()
+        end
       })
-
-      -- todo: save access token in memory
-      -- todo: store new refresh token
-
-      print("Google authorization successful")
-      -- todo: uncomment once oauth is working
-      -- params.callback()
     end
   )
 end
 
 -- fetches a google doc
 M.get = function(this, params)
+  -- todo: output user function to run to auth
+  assert(this.auth_state.access_token, "Not authorized to make google calls")
+
   print("fetching details for " .. params.documentId)
-  local url = ("https://docs.googleapis.com/v1/documents/" ..
-    params.documentId .. "?key=" .. this.api_key)
+  local url = "https://docs.googleapis.com/v1/documents/" .. params.documentId
 
   local on_response = vim.schedule_wrap(function(response)
     print(vim.json.encode(response))
@@ -173,6 +171,11 @@ M.get = function(this, params)
     params.callback(body)
   end)
 
-  curl.get(url, { callback = on_response })
+  curl.get(url, {
+    headers = {
+      ["Authorization"] = "Bearer " .. this.auth_state.access_token
+    },
+    callback = on_response
+  })
 end
 return M
