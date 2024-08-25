@@ -16,10 +16,9 @@ local function replace_gdoc_contents(document, update_requests)
   local requests = {}
 
   if (document_range.endIndex > 2) then
-    table.insert(requests, {
-      deleteContentRange = {
-        range = document_range
-      }
+    utils.insert_all(requests, {
+      { deleteContentRange = { range = document_range } },
+      { deleteParagraphBullets = { range = { startIndex = 1, endIndex = 1 } } },
     })
   end
   utils.insert_all(requests, update_requests)
