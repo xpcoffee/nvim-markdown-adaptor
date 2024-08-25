@@ -75,6 +75,38 @@ local function to_gdocs_update_requests(commands)
 
       index = index + #text
     end
+
+    if command.type == "code" then
+      local text = command.content .. "\n"
+
+      table.insert(requests, {
+        insertText = {
+          text = text,
+          location = {
+            index = index
+          }
+        }
+      })
+
+      local startIndex = index
+      local endIndex = index + #text - 1
+      table.insert(requests, {
+        updateTextStyle = {
+          range = {
+            startIndex = startIndex,
+            endIndex = endIndex
+          },
+          textStyle = {
+            weightedFontFamily = {
+              fontFamily = "Ubuntu Mono"
+            }
+          },
+          fields = "weightedFontFamily"
+        }
+      })
+
+      index = index + #text
+    end
   end
 
   return requests
