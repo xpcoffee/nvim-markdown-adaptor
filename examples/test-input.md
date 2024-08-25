@@ -1,3 +1,7 @@
+---
+google-doc-id: abcd1234
+---
+
 # Heading 1
 
 paragraph 1 - line 1

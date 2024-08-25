@@ -2,7 +2,7 @@ local M = {}
 
 local utils = require 'nvim-markdown-adaptor.utils'
 
-local FRONTMATTER_GOOGLE_DOC_ID_KEY = 'google-docjid'
+local FRONTMATTER_GOOGLE_DOC_ID_KEY = 'google-doc-id'
 
 local function get_error_command(msg)
   return { { type = "error", message = msg } }
@@ -25,7 +25,7 @@ end
 local function parse_node(node)
   local type = node:type()
 
-  if (type == 'document' or type == 'section') then
+  if (type == 'document' or type == 'section' or type == 'stream') then
     local commands = {}
     local child_iter = node:iter_children()
     local child = child_iter()
@@ -39,7 +39,15 @@ local function parse_node(node)
 
   if type == 'minus_metadata' then
     local map = node:child(0)
+
+    local child_iter = node:iter_children()
+    local child = child_iter()
+    while child ~= nil do
+      print("child " .. child:type())
+    end
+
     while (map ~= nil and map:type() ~= 'block_mapping') do
+      print("map chile type " .. map:type())
       map = map:child(0)
     end
 
@@ -150,11 +158,11 @@ local function parse_node(node)
     end
 
     if (program ~= nil) then
-      local program_content = vim.treesitter.get_node_text(program, 0)
+      local content = vim.treesitter.get_node_text(program, 0)
       local program_command = {
         type = "code",
         langauge = language,
-        program_content = program_content
+        content = content
       }
       return { program_command }
     end
