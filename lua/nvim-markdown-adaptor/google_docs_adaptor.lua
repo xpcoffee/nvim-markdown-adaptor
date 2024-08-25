@@ -8,7 +8,6 @@ local utils = require "nvim-markdown-adaptor.utils"
 --- @param update_requests table
 local function replace_gdoc_contents(document, update_requests)
   local elements = document.body.content
-  print(vim.json.encode(elements))
   local document_range = {
     startIndex = 1,
     endIndex = elements[#elements].endIndex - 1 -- not the newline character at the end
@@ -160,7 +159,7 @@ local function update_gdoc()
   local elements = parser.parse_current_buffer()
   local update_requests = to_gdocs_update_requests(elements)
   if #update_requests == 0 then
-    print("Empty requests. Stopping.")
+    print("No content. Stopping.")
     return
   end
 
@@ -179,7 +178,6 @@ end
 
 M.adapt_current_buffer = function()
   update_gdoc()
-  -- vim.schedule_wrap(update_gdoc)()
 end
 
 return M

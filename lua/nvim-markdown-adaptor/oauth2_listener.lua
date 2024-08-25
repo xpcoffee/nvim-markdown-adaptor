@@ -20,7 +20,7 @@ local function start_server()
           resp:statusCode(400):write("Both 'code' and 'state' query params are required."):close()
           skipPostFunction = true
         else
-          print("success," .. code .. "," .. state)
+          print("success," .. code .. "," .. state) -- do not remove; this is listened to by the plugin
           resp:statusCode(200):write("OK"):close()
         end
 
@@ -32,7 +32,7 @@ local function start_server()
       end
     },
     ["/stop"] = {
-      DELETE = function(req, resp)
+      DELETE = function(_, resp)
         resp:statusCode(202):write("Shutting down server"):close()
         os.exit(0)
       end
@@ -45,11 +45,7 @@ local function start_server()
     }
   })
 
-  server:start(function(request, response)
-    if request:method() == "DELETE" then
-      print("should stop...")
-    end
-  end)
+  server:start(function(_, _) end)
 end
 
 start_server()

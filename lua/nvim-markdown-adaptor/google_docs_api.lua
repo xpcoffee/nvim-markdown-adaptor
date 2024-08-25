@@ -168,12 +168,6 @@ M.oAuth2 = function(this, params)
     end
   end
 
-  -- todo: if we have a refresh token: exchange refresh token for access-token/refresh token pair
-  -- todo: save access token in memory
-  -- todo: store new refresh token
-  -- todo: early return
-
-
   vim.ui.select({ "yes", "no" }, {
       prompt = "Google Docs access needs to be granted via browser. Continue?"
     },
@@ -209,7 +203,7 @@ end
 
 -- fetches a google doc
 M.get = function(this, params)
-  -- todo: output user function to run to auth
+  -- todo: output the vim function that can be used to run auth
   assert(this.auth_state.access_token, "Not authorized to make google calls")
   local url = "https://docs.googleapis.com/v1/documents/" .. params.documentId
 
@@ -227,12 +221,11 @@ M.get = function(this, params)
 end
 
 M.batch_update = function(this, params)
-  -- todo: output user function to run to auth
+  -- todo: output the vim function that can be used to run auth
   assert(this.auth_state.access_token, "Not authorized to make google calls")
   local url = "https://docs.googleapis.com/v1/documents/" .. params.document_id .. ":batchUpdate"
 
   local on_response = vim.schedule_wrap(function(response)
-    print(vim.json.encode(response))
     local body = vim.json.decode(response.body)
 
     if params.callback then
@@ -243,7 +236,6 @@ M.batch_update = function(this, params)
   local update_request_body = {
     requests = params.requests
   }
-  print(vim.json.encode(update_request_body))
   curl.post(url, {
     headers = {
       ["Authorization"] = "Bearer " .. this.auth_state.access_token,
