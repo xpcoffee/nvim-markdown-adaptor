@@ -126,8 +126,8 @@ local function parse_node(node, context)
   end
 
   if (type == 'list') then
-    local child_iter = node:iter_children()
-    local list_item = child_iter()
+    local next_list_item = node:iter_children()
+    local list_item = next_list_item()
 
     local markerType = list_item:child(0):type()
     local is_ordered = false
@@ -137,34 +137,30 @@ local function parse_node(node, context)
 
     local commands = {}
     while list_item ~= nil do
-      local content_index = 1
+      local next_content = list_item:iter_children()
 
-      local is_checkbox = list_item:child(content_index) and
-          (list_item:child(content_index):type() == "task_list_marker_checked" or list_item:child(content_index):type() == "task_list_marker_unchecked")
-      if is_checkbox then
-        content_index = content_index + 1
-      end
+      local content = next_content()
+      while content do
+        local is_checkbox = content and
+            (content:type() == "task_list_marker_checked" or content:type() == "task_list_marker_unchecked")
 
-      local list_item_content = list_item:child(content_index)
-      if (list_item_content ~= nil) then
-        local newCommands = parse_node(list_item_content, ctx)
-        utils.insert_all(commands, newCommands)
-        content_index = content_index + 1
-      end
 
-      local sub_list = list_item:child(content_index)
-      if sub_list and sub_list:type() == "list" then
         local new_context = {}
         for k, v in pairs(ctx) do
           new_context[k] = v
         end
-        new_context.indent = new_context.indent + 1
 
-        local newCommands = parse_node(sub_list, new_context)
+        if content:type() == "list" then
+          new_context.indent = new_context.indent + 1
+        end
+
+        local newCommands = parse_node(content, new_context)
         utils.insert_all(commands, newCommands)
+
+        content = next_content()
       end
 
-      list_item = child_iter()
+      list_item = next_list_item()
     end
 
     local list_command = {
@@ -205,7 +201,7 @@ end
 M.parse_current_buffer = function()
   local root_node = get_root_node()
   if root_node ~= nil then
-    return parse_node(root_node, ctx)
+    return parse_node(root_node)
   end
   return {}
 end
