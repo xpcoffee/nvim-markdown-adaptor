@@ -8,25 +8,36 @@ local utils = require "nvim-markdown-adaptor.utils"
 --- @param update_requests table
 local function replace_gdoc_contents(document, update_requests)
   local elements = document.body.content
+  print(vim.json.encode(document.body.content))
   local document_range = {
-    startIndex = 0,
-    endIndex = elements[#elements].endIndex
+    startIndex = 1,
+    endIndex = elements[#elements].endIndex - 1 -- not the newline character at the end
   }
 
   local requests = {
-    deleteContentRange = {
-      range = document_range
-    }
   }
 
+  if (document_range.endIndex > 2) then
+    table.insert(requests, {
+      deleteContentRange = {
+        range = document_range
+      }
+    })
+  end
+
   utils.insert_all(requests, update_requests)
+  utils.insert_all(requests, { {
+    ["insertText"] = {
+      ["text"] = "hello, world!",
+      ["location"] = {
+        ["index"] = 1
+      }
+    }
+  } })
 
-  local batch_update_request = vim.json.encode({
-    documentId = document.id,
-    requests = requests,
-  })
+  local batch_update_request = vim.json.encode
 
-  print(batch_update_request)
+  gapi:batch_update({ requests = requests, document_id = document.documentId })
 end
 
 local function to_gdocs_update_requests(commands)

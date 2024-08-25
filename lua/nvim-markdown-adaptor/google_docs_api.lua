@@ -103,7 +103,6 @@ M.refresh_access_token = function(this, params)
     },
     callback = function(response)
       if response.status ~= 200 then
-        print(vim.json.encode(response))
         error("Unable to authorize against Google APIs")
         return
       end
@@ -223,6 +222,34 @@ M.get = function(this, params)
     headers = {
       ["Authorization"] = "Bearer " .. this.auth_state.access_token
     },
+    callback = on_response
+  })
+end
+
+M.batch_update = function(this, params)
+  -- todo: output user function to run to auth
+  assert(this.auth_state.access_token, "Not authorized to make google calls")
+  local url = "https://docs.googleapis.com/v1/documents/" .. params.document_id .. ":batchUpdate"
+
+  local on_response = vim.schedule_wrap(function(response)
+    print(vim.json.encode(response))
+    local body = vim.json.decode(response.body)
+
+    if params.callback then
+      params.callback(body)
+    end
+  end)
+
+  local update_request_body = {
+    requests = params.requests
+  }
+  print(vim.json.encode(update_request_body))
+  curl.post(url, {
+    headers = {
+      ["Authorization"] = "Bearer " .. this.auth_state.access_token,
+      ["Content-Type"] = "application/json",
+    },
+    raw_body = vim.json.encode(update_request_body),
     callback = on_response
   })
 end
