@@ -4,11 +4,60 @@ nvim plugin which adapts markdown files to external targets
 
 > WIP. This repo doesn't do anything currenlty.
 
-## goals (as of 2024-06)
+## Goals (as of 2024-06)
 
 - be able to sync a markdown file to/from a target, initially google-docs
 
-## research
+## Getting started
+
+### Steps to set up a Google Application
+
+You need an application in order to get credentials to modify your Google Docs.
+
+- Create an account & project https://cloud.google.com/apis/docs/getting-started
+- Enable the Google Docs API for the project https://console.cloud.google.com/apis/library/docs.googleapis.com
+- Create an OAuth client ID https://console.cloud.google.com/apis/credentials
+- Download the "OAuth client" secrets file and save it to `/home/rick/.nvim-extension-client-secret.json`
+  - TODO: this is currently hardcoded in `google_docs_api.lua`, but should be configured
+
+### Installation
+
+The project has a dependency on [pegasus](https://github.com/EvandroLG/pegasus.lua). This needs to be manually installed e.g. using [luarocks](https://luarocks.org/).
+TODO: automate this as part of the config (for some reason I haven't been able to get luarocks.nvim to work with this)
+
+```
+luarocks install pegasus
+```
+
+Using [lazy.nvim](https://github.com/folke/lazy.nvim):
+
+```lua
+{
+  "xpcoffee/nvim-markdown-adaptor",
+  dependencies = { "nvim-lua/plenary.nvim" },
+  config = function()
+    local adaptor = require('nvim-markdown-adaptor')
+    vim.keymap.set("n", "<leader>mg", adaptor.adapt_current_buffer, { desc = "markdown: to Google Doc"})
+  end
+}
+```
+
+TODO: improve api to be "sync_google" or something more readable
+
+### Usage
+
+On a markdown page:
+
+```lua
+require "nvim-markdown-adaptor".adapt_current_buffer()
+```
+
+TODO: grab document ID from the frontmatter or allow input.
+Currently this is hardcoded in `google_docs_adaptor.lua`.
+
+## Research
+
+Progress made while figuring out how to get htis to work.
 
 ### 2024-08-26
 
