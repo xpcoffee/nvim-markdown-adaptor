@@ -37,12 +37,10 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
   dependencies = { "nvim-lua/plenary.nvim" },
   config = function()
     local adaptor = require('nvim-markdown-adaptor')
-    vim.keymap.set("n", "<leader>mg", adaptor.adapt_current_buffer, { desc = "markdown: to Google Doc"})
+    vim.keymap.set("n", "<leader>mg", adaptor.sync_to_google_doc, { desc = "markdown: to Google Doc"})
   end
 }
 ```
-
-TODO: improve api to be "sync_google" or something more readable
 
 ### Usage
 
