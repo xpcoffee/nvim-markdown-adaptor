@@ -196,26 +196,33 @@ local function parse_node(node, context)
   end
 
   if (type == 'fenced_code_block') then
-    local program = node:child(3)
+    local next_content = node:iter_children()
 
-    local language = "unknown"
-    local info = node:child(1)
-    if (info ~= nil) then
-      local language_info = info:child(0)
-      if (language_info ~= nil) then
-        language = vim.treesitter.get_node_text(language_info, 0)
+    local program_command = {
+      type = ELEMENT_TYPES.code,
+    }
+
+    local content_item = next_content()
+    while content_item do
+      if content_item:type() == 'code_fence_content' then
+        program_command.content = vim.treesitter.get_node_text(content_item, 0)
       end
+
+      if content_item:type() == 'info_string' then
+        local next_info = content_item:iter_children()
+        local info_item = next_info()
+        while info_item do
+          if info_item:type() == 'language' then
+            program_command.language = vim.treesitter.get_node_text(info_item, 0)
+          end
+          info_item = next_info()
+        end
+      end
+
+      content_item = next_content()
     end
 
-    if (program ~= nil) then
-      local content = vim.treesitter.get_node_text(program, 0)
-      local program_command = {
-        type = ELEMENT_TYPES.code,
-        langauge = language,
-        content = content
-      }
-      return { program_command }
-    end
+    return { program_command }
   end
 
   return wrapped_error_command("unknown node type " .. type)
