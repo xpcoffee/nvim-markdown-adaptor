@@ -1,9 +1,25 @@
+--- @return GoogleDocsApi
+
+--- @class GoogleDocsApi
+--- @field client_id string
+--- @field client_secret string
+--- @field client_secrets_file string
+--- @field auth_state AuthState
 local M = {
   client_id = "1061313657775-3tvcrig9qi4lhe0331pgmme8bsgj0pti.apps.googleusercontent.com",
   client_secrets_file = "/home/rick/.nvim-extension-client-secret.json", -- TODO: generalize
   redirect_uri = "http://localhost:9090/oauth2",
+
   auth_state = {}
 }
+
+--- @class AuthState
+--- @field scope string | nil
+--- @field state string | nil
+--- @field code_verifier string | nil
+--- @field code_challenge string | nil
+--- @field code_challenge_method string | nil
+--- @field access_token string | nil
 
 local curl = require "plenary.curl"
 local utils = require "nvim-markdown-adaptor.utils"
@@ -12,13 +28,13 @@ local settings = require "nvim-markdown-adaptor.settings"
 local CWD = vim.fn.getcwd() .. "/lua/nvim-markdown-adaptor"
 local SETTING_REFRESH_TOKEN = "google_api.refresh_token"
 
+---@param this GoogleDocsApi
 M.clear_and_seed_auth_state = function(this)
   -- Generates state and PKCE values.
 
-  local code_verifier = vim.fn.rand()
+  local code_verifier = "" .. vim.fn.rand()
   this.auth_state = {
     scope = "https://www.googleapis.com/auth/documents",
-    redirect_uri = this.redirect_uri,
     state = "" .. vim.fn.rand(),
     code_verifier = code_verifier,
     code_challenge_method = "plain",
@@ -51,9 +67,11 @@ local function encode_base64(data)
   end) .. ({ '', '==', '=' })[#data % 3 + 1])
 end
 
--- exchanges an auth code for an auth token and refresh token
--- saves the auth token to memory
--- calls callback with the refresh token
+--- exchanges an auth code for an auth token and refresh token
+--- saves the auth token to memory
+--- calls callback with the refresh token
+---
+--- @param this GoogleDocsApi
 M.exchange_code_for_token = function(this, params)
   assert(params.state == this.auth_state.state,
     ("Returned state <%s> does not match original state <%s>"):format(params.state, this.auth_state.state))
@@ -61,7 +79,7 @@ M.exchange_code_for_token = function(this, params)
   local body = "code=" .. params.code ..
       "&client_id=" .. this.client_id ..
       "&client_secret=" .. this.client_secret ..
-      "&redirect_uri=" .. this.auth_state.redirect_uri .. -- unclear what this needs to be
+      "&redirect_uri=" .. this.redirect_uri .. -- unclear what this needs to be
       "&code_verifier=" .. this.auth_state.code_verifier ..
       "&grant_type=authorization_code"
 
@@ -120,12 +138,13 @@ M.refresh_access_token = function(this, params)
 end
 
 
+--- @return string
 function M.get_authorization_url(this)
   local endpoint = "https://accounts.google.com/o/oauth2/v2/auth"
 
   local authorization_url = endpoint .. "?response_type=code" ..
       "&scope=" .. this.auth_state.scope ..
-      "&redirect_uri=" .. this.auth_state.redirect_uri ..
+      "&redirect_uri=" .. this.redirect_uri ..
       "&client_id=" .. this.client_id ..
       "&state=" .. this.auth_state.state ..
       "&code_challenge=" ..
@@ -135,25 +154,33 @@ function M.get_authorization_url(this)
   return authorization_url
 end
 
--- see also Google documentation
--- https://developers.google.com/identity/protocols/oauth2/native-app
+--- @class OAuthParams
+--- @field force_auth_flow boolean | nil - bypasses cached credentials
+--- @field callback fun() | nil - called if the flow succeeds
+
+--- Performs Oauth2 flow for Google Docs API
+---
+--- see also Google documentation
+--- https://developers.google.com/identity/protocols/oauth2/native-app
 --
--- Full flow...
--- check if we have access token
---  - true: return
---  - false: check if we have refresh token
---      - true:
---        - call exchange endpoint to get access token
---        - store access token in this session
---      - false:
---        - prepare url for oauth2 consent
---        - start http listener to listen to loopback call
---        - prompt user to open in browser
---        - on loopback call recieved
---          - store refresh token
---          - call exchange endpoint to get access token
---          - store access token in this session
---
+--- Full flow...
+--- check if we have access token
+---  - true: return
+---  - false: check if we have refresh token
+---      - true:
+---        - call exchange endpoint to get access token
+---        - store access token in this session
+---      - false:
+---        - prepare url for oauth2 consent
+---        - start http listener to listen to loopback call
+---        - prompt user to open in browser
+---        - on loopback call recieved
+---          - store refresh token
+---          - call exchange endpoint to get access token
+---          - store access token in this session
+---
+--- @param this GoogleDocsApi
+--- @param params OAuthParams
 M.oAuth2 = function(this, params)
   if not params.force_auth_flow then
     if this.auth_state.access_token ~= nil then
@@ -201,11 +228,20 @@ M.oAuth2 = function(this, params)
   )
 end
 
--- fetches a google doc
+
+
+--- @class GetParams
+--- @field document_id string - the Google Doc ID
+--- @field callback fun(obj) - called with document content, if the document could be fetched
+
+--- Fetches the content of a Google Doc
+---
+--- @param this GoogleDocsApi
+--- @param params GetParams
 M.get = function(this, params)
   -- todo: output the vim function that can be used to run auth
   assert(this.auth_state.access_token, "Not authorized to make google calls")
-  local url = "https://docs.googleapis.com/v1/documents/" .. params.documentId
+  local url = "https://docs.googleapis.com/v1/documents/" .. params.document_id
 
   local on_response = vim.schedule_wrap(function(response)
     local body = vim.json.decode(response.body)
@@ -220,6 +256,15 @@ M.get = function(this, params)
   })
 end
 
+--- @class BatchUpdateParams
+--- @field document_id string - the Google Doc ID
+--- @field requests table[] - the Google Doc ID
+--- @field callback fun(object)  called with the response content
+
+--- Fetches the content of a Google Doc
+---
+--- @param this GoogleDocsApi
+--- @param params BatchUpdateParams
 M.batch_update = function(this, params)
   -- todo: output the vim function that can be used to run auth
   assert(this.auth_state.access_token, "Not authorized to make google calls")
@@ -250,5 +295,6 @@ end
 -- ordering matters
 M:clear_and_seed_auth_state()
 M:load_secrets()
+
 
 return M

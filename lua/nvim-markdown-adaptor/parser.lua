@@ -4,7 +4,9 @@ local utils = require 'nvim-markdown-adaptor.utils'
 
 local FRONTMATTER_GOOGLE_DOC_ID_KEY = 'google-doc-id'
 
-local function get_error_command(msg)
+--- @param msg string
+---@return {[integer]: Element}
+local function wrapped_error_command(msg)
   return { { type = "error", message = msg } }
 end
 
@@ -18,10 +20,23 @@ local function get_root_node()
   return node
 end
 
+
+--- @enum ElementType
+local ELEMENT_TYPES = {
+  heading = "heading",
+  paragraph = "paragraph",
+  list = "list",
+  code = "code",
+}
+M.ELEMENT_TYPES = ELEMENT_TYPES
+
+--- @class Element
+--- @field type ElementType
+
 --- Recursively parses TreeSitter tree into commands
 ---
 ---@param node TSNode
----@return table
+---@return {[integer]: Element}
 local function parse_node(node, context)
   local type = node:type()
 
@@ -96,11 +111,11 @@ local function parse_node(node, context)
       elseif (marker ~= nil and marker == 'atx_h4_marker') then
         heading_lvl = 4
       else
-        return get_error_command("unkown heading marker " .. marker)
+        return wrapped_error_command("unkown heading marker " .. marker)
       end
 
       local heading_command = {
-        type = "heading",
+        type = ELEMENT_TYPES.heading,
         level = heading_lvl,
         content = vim.treesitter.get_node_text(content, 0)
       }
@@ -115,11 +130,12 @@ local function parse_node(node, context)
     local content = node:child(0)
     if (content ~= nil) then
       local paragraph_command = {
-        type = "paragraph",
+        type = ELEMENT_TYPES.paragraph,
         content = vim.treesitter.get_node_text(content, 0),
         indent = ctx.indent,
         checked = ctx.checked
       }
+
       return { paragraph_command }
     else
       return { "empty" }
@@ -171,7 +187,7 @@ local function parse_node(node, context)
     end
 
     local list_command = {
-      type = "list",
+      type = ELEMENT_TYPES.list,
       indent = ctx.indent,
       is_ordered = is_ordered,
       items = commands
@@ -194,7 +210,7 @@ local function parse_node(node, context)
     if (program ~= nil) then
       local content = vim.treesitter.get_node_text(program, 0)
       local program_command = {
-        type = "code",
+        type = ELEMENT_TYPES.code,
         langauge = language,
         content = content
       }
@@ -202,7 +218,7 @@ local function parse_node(node, context)
     end
   end
 
-  return get_error_command("unknown node type " .. type)
+  return wrapped_error_command("unknown node type " .. type)
 end
 
 M.parse_current_buffer = function()

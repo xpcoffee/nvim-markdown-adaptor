@@ -26,7 +26,7 @@ local function replace_gdoc_contents(document, update_requests)
   gapi:batch_update({ requests = requests, document_id = document.documentId })
 end
 
-local function to_gdocs_update_requests(commands, opts)
+local function to_gdocs_update_requests(elements, opts)
   local requests = {}
   local tabs = 0 -- see handling of list commands to see how this is used
 
@@ -35,14 +35,14 @@ local function to_gdocs_update_requests(commands, opts)
     index = opts.index
   end
 
-  for _, command in pairs(commands) do
-    if command.type == "paragraph" then
+  for _, element in pairs(elements) do
+    if element.type == parser.ELEMENT_TYPES.paragraph then
       local text = ""
-      for _ = 1, command.indent, 1 do
+      for _ = 1, element.indent, 1 do
         text = text .. "\t"
       end
-      text = text .. command.content .. "\n"
-      tabs = tabs + command.indent
+      text = text .. element.content .. "\n"
+      tabs = tabs + element.indent
 
       table.insert(requests, {
         insertText = {
@@ -53,7 +53,7 @@ local function to_gdocs_update_requests(commands, opts)
         }
       })
 
-      if command.checked then
+      if element.checked then
         table.insert(requests, {
           updateTextStyle = {
             range = {
@@ -61,7 +61,7 @@ local function to_gdocs_update_requests(commands, opts)
               endIndex = index + #text - 1
             },
             textStyle = {
-              strikethrough = command.checked
+              strikethrough = element.checked
             },
             fields = "strikethrough"
           }
@@ -71,8 +71,8 @@ local function to_gdocs_update_requests(commands, opts)
       index = index + #text
     end
 
-    if command.type == "heading" then
-      local text = command.content .. "\n"
+    if element.type == parser.ELEMENT_TYPES.heading then
+      local text = element.content .. "\n"
 
       table.insert(requests, {
         insertText = {
@@ -92,7 +92,7 @@ local function to_gdocs_update_requests(commands, opts)
             endIndex = endIndex
           },
           paragraphStyle = {
-            namedStyleType = "HEADING_" .. command.level
+            namedStyleType = "HEADING_" .. element.level
           },
           fields = "namedStyleType"
         }
@@ -101,8 +101,8 @@ local function to_gdocs_update_requests(commands, opts)
       index = index + #text
     end
 
-    if command.type == "code" then
-      local text = command.content .. "\n"
+    if element.type == parser.ELEMENT_TYPES.code then
+      local text = element.content .. "\n"
 
       table.insert(requests, {
         insertText = {
@@ -133,17 +133,17 @@ local function to_gdocs_update_requests(commands, opts)
       index = index + #text
     end
 
-    if command.type == "list" then
-      local list_items, nested_context = to_gdocs_update_requests(command.items, { index = index })
+    if element.type == parser.ELEMENT_TYPES.list then
+      local list_items, nested_context = to_gdocs_update_requests(element.items, { index = index })
       utils.insert_all(requests, list_items)
 
 
       local bulletPreset = "BULLET_DISC_CIRCLE_SQUARE"
-      if command.is_ordered then
+      if element.is_ordered then
         bulletPreset = "NUMBERED_DECIMAL_ALPHA_ROMAN"
       end
 
-      if command.indent == 0 then
+      if element.indent == 0 then
         table.insert(requests, {
           createParagraphBullets = {
             range = {
@@ -184,7 +184,7 @@ local function update_gdoc()
   gapi:oAuth2({ -- currently broken: need to finish auth
     callback = function()
       gapi:get({
-        documentId = docId,
+        document_id = docId,
         callback = function(doc) replace_gdoc_contents(doc, update_requests) end
       })
     end
