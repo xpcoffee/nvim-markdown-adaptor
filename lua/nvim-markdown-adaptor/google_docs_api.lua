@@ -221,7 +221,9 @@ M.oAuth2 = function(this, params)
         callback = function(refresh_token)
           print("Google authorization successful")
           settings.set(SETTING_REFRESH_TOKEN, refresh_token)
-          params.callback()
+          if params and params.callback then
+            params.callback()
+          end
         end
       })
     end

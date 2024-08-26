@@ -169,7 +169,12 @@ local function to_gdocs_update_requests(elements, opts)
   return requests, nested_context
 end
 
-local function update_gdoc()
+
+--- @class GoogleDocSyncParams
+--- @field document_id string
+
+--- @param params GoogleDocSyncParams
+M.sync_to_google_doc = function(params)
   local elements = parser.parse_current_buffer()
   local update_requests = to_gdocs_update_requests(elements)
   print(vim.json.encode(update_requests))
@@ -178,21 +183,19 @@ local function update_gdoc()
     return
   end
 
-  -- update google docs
-  local docId = "1MlkhxLgUxsol_zN6Irhy6jhcPSPZLKulBMV-YPSU6Bg"
+  if not params.document_id then
+    -- todo: try to fetch from document
+    error("No document ID provided to sync_to_google_doc")
+  end
 
-  gapi:oAuth2({ -- currently broken: need to finish auth
+  gapi:oAuth2({
     callback = function()
       gapi:get({
-        document_id = docId,
+        document_id = params.document_id,
         callback = function(doc) replace_gdoc_contents(doc, update_requests) end
       })
     end
   })
-end
-
-M.adapt_current_buffer = function()
-  update_gdoc()
 end
 
 return M

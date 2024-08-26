@@ -25,7 +25,7 @@ You need an application in order to get credentials to modify your Google Docs.
 The project has a dependency on [pegasus](https://github.com/EvandroLG/pegasus.lua). This needs to be manually installed e.g. using [luarocks](https://luarocks.org/).
 TODO: automate this as part of the config (for some reason I haven't been able to get luarocks.nvim to work with this)
 
-```
+```shell
 luarocks install pegasus
 ```
 
@@ -49,11 +49,18 @@ TODO: improve api to be "sync_google" or something more readable
 On a markdown page:
 
 ```lua
-require "nvim-markdown-adaptor".adapt_current_buffer()
+-- sync to a specific document
+require "nvim-markdown-adaptor".sync_to_google_doc({ document_id = "your-gdoc-id"})
+
+-- re-do the auth flow to get credentials to call against the Google API
+require "nvim-markdown-adaptor".reauthorize_google_api()
 ```
 
 TODO: grab document ID from the frontmatter or allow input.
-Currently this is hardcoded in `google_docs_adaptor.lua`.
+
+## Known issues
+
+- We currently do not check expiry of the OAuth refresh-token. Need to trigger `reauthorize_google_api` manually to get a new one.
 
 ## Research
 
