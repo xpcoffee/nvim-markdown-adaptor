@@ -53,6 +53,21 @@ local function to_gdocs_update_requests(commands, opts)
         }
       })
 
+      if command.checked then
+        table.insert(requests, {
+          updateTextStyle = {
+            range = {
+              startIndex = index,
+              endIndex = index + #text - 1
+            },
+            textStyle = {
+              strikethrough = command.checked
+            },
+            fields = "strikethrough"
+          }
+        })
+      end
+
       index = index + #text
     end
 

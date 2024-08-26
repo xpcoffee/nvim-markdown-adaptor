@@ -117,7 +117,8 @@ local function parse_node(node, context)
       local paragraph_command = {
         type = "paragraph",
         content = vim.treesitter.get_node_text(content, 0),
-        indent = ctx.indent
+        indent = ctx.indent,
+        checked = ctx.checked
       }
       return { paragraph_command }
     else
@@ -136,16 +137,22 @@ local function parse_node(node, context)
     end
 
     local commands = {}
-    while list_item ~= nil do
+    while list_item do
       local next_content = list_item:iter_children()
+      local checked = nil
 
       local content = next_content()
       while content do
-        local is_checkbox = content and
-            (content:type() == "task_list_marker_checked" or content:type() == "task_list_marker_unchecked")
+        if content:type() == "task_list_marker_checked" then
+          checked = true
+        end
+
+        if content:type() == "task_list_marker_unchecked" then
+          checked = false
+        end
 
 
-        local new_context = {}
+        local new_context = { checked = checked }
         for k, v in pairs(ctx) do
           new_context[k] = v
         end
