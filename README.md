@@ -10,6 +10,29 @@ nvim plugin which adapts markdown files to external targets
 
 ## research
 
+### 2024-08-26
+
+Quite close to a working prototype now
+
+- [x] transform parser output into google docs commands
+- [x] update a doc - "hello world" on document
+- [x] replace doc with new content
+- [ ] support elements
+  - [x] headings
+  - [x] paragraphs
+  - [x] code
+  - [x] lists
+  - [ ] checklists
+  - [ ] links
+  - [ ] quotes
+- [ ] update readme to enable someone else to install
+- [ ] define actual MVP scope
+
+Out of scope for now
+
+- tables
+- images
+
 ### 2024-08-25
 
 Now know how to do an Oauth flow
