@@ -168,10 +168,11 @@ local function parse_node(node, context)
         end
 
 
-        local new_context = { checked = checked }
+        local new_context = {}
         for k, v in pairs(ctx) do
           new_context[k] = v
         end
+        new_context.checked = checked
 
         if content:type() == "list" then
           new_context.indent = new_context.indent + 1
