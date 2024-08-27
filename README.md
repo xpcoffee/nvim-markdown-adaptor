@@ -92,6 +92,25 @@ TODO: grab document ID from the frontmatter or allow input.
 
 Progress made while figuring out how to get htis to work.
 
+### 2024-08-27
+
+Quite close to a working prototype now
+
+- [x] make plugin configurable
+- [x] update readme to enable someone else to install
+- [ ] support elements
+  - [ ] quotes
+  - [ ] links
+
+Started looking at implementing links; looking quite complicated:
+
+- currently just output a full paragraph
+- links live within paragraphs, and their length will change when converted into a google doc link, which messes with index values
+- index shennanigans may mean switching tactics in the adpator logic to update a google doc in reverse (always insert new things at index 1)
+- will need to iterate and process **all** elements of a paragraph to find the links
+  - not sure how to handle the edge case with unkown elements; till now we just display the pure text, but that might not be challenging to continue to do if there's e.g. a link in the middle of a text block...
+- on the flip side: once this is figured out, I should be able to extend this to add in functionality for any other text styling (bold/italics/emphasis, maybe even color?)
+
 ### 2024-08-26
 
 Quite close to a working prototype now
