@@ -2,7 +2,9 @@
 
 [Neovim](https://neovim.io/) plugin which adapts markdown files to external targets (one-way sync).
 
-> WARNING❗❗ This repo is real-buggy, and not ready for public consumption. Use at your own risk. ❗❗WARNING
+> ❗❗WARNING❗❗
+> This repo is real-buggy, and not ready for public consumption. Use at your own risk.
+> ❗❗WARNING❗❗
 
 ## Goals (as of 2024-08)
 
@@ -13,15 +15,15 @@
 
 ## Getting started
 
-### Steps to set up a Google Application
+### Configure a Google Project
 
-You need an application in order to get credentials to modify your Google Docs.
+You need a correctly configured Google Project in order to get credentials to modify your Google Docs.
 
 - Create an account & project https://cloud.google.com/apis/docs/getting-started
 - Enable the Google Docs API for the project https://console.cloud.google.com/apis/library/docs.googleapis.com
 - Create an OAuth client ID https://console.cloud.google.com/apis/credentials
-- Download the "OAuth client" secrets file and save it to `/home/rick/.nvim-extension-client-secret.json`
-  - TODO: this is currently hardcoded in `google_docs_api.lua`, but should be configured
+- Allowlist your account as a test user in the OAuth consent screen settings._OAuth will be blocked for non-allowlisted users until the application gets published._ https://console.cloud.google.com/apis/credentials/consent
+- Download the "OAuth client" secrets file and save it. We'll reference this file later in `google_client_file_path`.
 
 ### Installation
 
