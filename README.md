@@ -11,7 +11,6 @@
 
 <img src="https://github.com/user-attachments/assets/bfdfb53f-13b9-4c2e-8caf-6cf5130846f8" width="300px;"></img>
 
-
 ## Getting started
 
 ### Steps to set up a Google Application
@@ -39,12 +38,35 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 {
   "xpcoffee/nvim-markdown-adaptor",
   dependencies = { "nvim-lua/plenary.nvim" },
+  opts = {
+    google_client_file_path = "/home/rick/.nvim-extension-client-secret.json", -- required
+    data_file_path = "/home/rick/.nvim-markdown-adaptor.json", -- make sure this file exists; it doesn't get auto-created
+  },
+}
+```
+
+If you want to use a `config` clause, you need to call `setup()` with opts.
+
+```lua
+{
+  "xpcoffee/nvim-markdown-adaptor",
+  dependencies = { "nvim-lua/plenary.nvim" },
   config = function()
     local adaptor = require('nvim-markdown-adaptor')
     vim.keymap.set("n", "<leader>mg", adaptor.sync_to_google_doc, { desc = "markdown: to Google Doc"})
+    adaptor.setup({
+        google_client_file_path = "/home/rick/.nvim-extension-client-secret.json", -- required
+        data_file_path = "/home/rick/.nvim-markdown-adaptor.json",
+    })
   end
 }
 ```
+
+### Opts
+
+- `google_client_file_path` | required | _string_ | _default: nil_ | A path to persist data, incl OAuth2 refresh token. If left empty, no data will be persisted. e.g. you'll need to authorize every session.
+- `data_file_path` | optional | _string_ | _default: nil_ | A path to persist data, incl OAuth2 refresh token. If left empty, no data will be persisted. e.g. you'll need to authorize every session.
+- `google_oauth_redirect_port` | optional | _string_ | _default: "9090"_ | The port to use when listening to OAuth2 loopback
 
 ### Usage
 
@@ -80,7 +102,7 @@ Quite close to a working prototype now
   - [x] paragraphs
   - [x] code
   - [x] lists
-  - [ ] checklists
+  - [x] checklists
   - [ ] links
   - [ ] quotes
 - [ ] update readme to enable someone else to install

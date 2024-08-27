@@ -1,17 +1,9 @@
---- @return GoogleDocsApi
-
 --- @class GoogleDocsApi
 --- @field client_id string
 --- @field client_secret string
---- @field client_secrets_file string
---- @field auth_state AuthState
-local M = {
-  client_id = "1061313657775-3tvcrig9qi4lhe0331pgmme8bsgj0pti.apps.googleusercontent.com",
-  client_secrets_file = "/home/rick/.nvim-extension-client-secret.json", -- TODO: generalize
-  redirect_uri = "http://localhost:9090/oauth2",
-
-  auth_state = {}
-}
+--- @field redirect_uri string
+--- @field auth_state AuthState | nil
+M = {}
 
 --- @class AuthState
 --- @field scope string | nil
@@ -23,14 +15,19 @@ local M = {
 
 local curl = require "plenary.curl"
 local utils = require "nvim-markdown-adaptor.utils"
-local settings = require "nvim-markdown-adaptor.settings"
+local options = require "nvim-markdown-adaptor.options"
+local plugin_data = require "nvim-markdown-adaptor.plugin_data"
 
 local CWD = vim.fn.getcwd() .. "/lua/nvim-markdown-adaptor"
-local SETTING_REFRESH_TOKEN = "google_api.refresh_token"
+local SETTING_REFRESH_TOKEN = "__google_api.refresh_token"
 
 ---@param this GoogleDocsApi
-M.clear_and_seed_auth_state = function(this)
-  -- Generates state and PKCE values.
+---@param callback fun() | nil
+M.init = function(this, callback)
+  local redirect_uri_port = options.get("google_oauth_redirect_port")
+  assert(redirect_uri_port, "Empty value for redirect_uri_port")
+
+  this.redirect_uri = "http://localhost:" .. redirect_uri_port .. "/oauth2" -- FIXME: assign port to the server
 
   local code_verifier = "" .. vim.fn.rand()
   this.auth_state = {
@@ -39,32 +36,31 @@ M.clear_and_seed_auth_state = function(this)
     code_verifier = code_verifier,
     code_challenge_method = "plain",
     code_challenge = code_verifier,
-    -- todo: get SHA256 verifier to work... think there's a problem with base64 or the sha hashing
-    -- code_challenge_method = "SHA256",
-    -- code_challenge = encode_base64(vim.fn.sha256(code_verifier)):gsub("=", "") .. -- note: pkce doesn't want base64 padding https://www.rfc-editor.org/rfc/rfc7636#appendix-A
   }
+
+  this:load_secrets(callback)
 end
 
-M.load_secrets = function(this)
-  utils.read_file(this.client_secrets_file, function(data)
+---@param this GoogleDocsApi
+---@param callback fun() | nil
+M.load_secrets = function(this, callback)
+  local client_secrets_file = options.get(options.OPTION.google_client_file)
+  assert(client_secrets_file, "Empty value for client_secrets_file")
+
+  utils.read_file(client_secrets_file, function(data)
+    assert(data, "No secret data returned when reading client file")
+
     local secrets_data = vim.json.decode(data)
+    assert(secrets_data.installed and secrets_data.installed.client_secret, "No client_secret found in client file")
+    assert(secrets_data.installed and secrets_data.installed.client_secret, "No client_id found in client file")
+
     this.client_secret = secrets_data.installed.client_secret
     this.client_id = secrets_data.installed.client_id
-  end)
-end
 
-local function encode_base64(data)
-  local b = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-  return ((data:gsub('.', function(x)
-    local r, b = '', x:byte()
-    for i = 8, 1, -1 do r = r .. (b % 2 ^ i - b % 2 ^ (i - 1) > 0 and '1' or '0') end
-    return r;
-  end) .. '0000'):gsub('%d%d%d?%d?%d?%d?', function(x)
-    if (#x < 6) then return '' end
-    local c = 0
-    for i = 1, 6 do c = c + (x:sub(i, i) == '1' and 2 ^ (6 - i) or 0) end
-    return b:sub(c + 1, c + 1)
-  end) .. ({ '', '==', '=' })[#data % 3 + 1])
+    if callback then
+      callback()
+    end
+  end)
 end
 
 --- exchanges an auth code for an auth token and refresh token
@@ -73,6 +69,7 @@ end
 ---
 --- @param this GoogleDocsApi
 M.exchange_code_for_token = function(this, params)
+  assert(this.auth_state, "GoogleDocsApi not initialized. See setup()")
   assert(params.state == this.auth_state.state,
     ("Returned state <%s> does not match original state <%s>"):format(params.state, this.auth_state.state))
 
@@ -109,6 +106,7 @@ end
 -- saves the auth token to memory
 -- the refresh token is multi-use
 M.refresh_access_token = function(this, params)
+  assert(this.auth_state, "GoogleDocsApi not initialized. See setup()")
   local body = "refresh_token=" .. params.refresh_token ..
       "&client_id=" .. this.client_id ..
       "&client_secret=" .. this.client_secret ..
@@ -140,6 +138,7 @@ end
 
 --- @return string
 function M.get_authorization_url(this)
+  assert(this.auth_state, "GoogleDocsApi not initialized. See setup()")
   local endpoint = "https://accounts.google.com/o/oauth2/v2/auth"
 
   local authorization_url = endpoint .. "?response_type=code" ..
@@ -182,13 +181,20 @@ end
 --- @param this GoogleDocsApi
 --- @param params OAuthParams
 M.oAuth2 = function(this, params)
+  if not this.auth_state then
+    this:init(function()
+      this:oAuth2(params)
+    end)
+    return
+  end
+
   if not params.force_auth_flow then
     if this.auth_state.access_token ~= nil then
       params.callback()
       return
     end
 
-    local refresh_token = settings.get(SETTING_REFRESH_TOKEN)
+    local refresh_token = plugin_data.get(SETTING_REFRESH_TOKEN)
     if refresh_token ~= nil then
       this:refresh_access_token({ refresh_token = refresh_token, callback = params.callback })
       return
@@ -220,7 +226,7 @@ M.oAuth2 = function(this, params)
         state = response.state,
         callback = function(refresh_token)
           print("Google authorization successful")
-          settings.set(SETTING_REFRESH_TOKEN, refresh_token)
+          plugin_data.set(SETTING_REFRESH_TOKEN, refresh_token)
           if params and params.callback then
             params.callback()
           end
@@ -241,8 +247,8 @@ end
 --- @param this GoogleDocsApi
 --- @param params GetParams
 M.get = function(this, params)
-  -- todo: output the vim function that can be used to run auth
-  assert(this.auth_state.access_token, "Not authorized to make google calls")
+  assert(this.auth_state and this.auth_state.access_token,
+    "Not authorized to make google calls. See reauthorize_google_api()")
   local url = "https://docs.googleapis.com/v1/documents/" .. params.document_id
 
   local on_response = vim.schedule_wrap(function(response)
@@ -261,15 +267,15 @@ end
 --- @class BatchUpdateParams
 --- @field document_id string - the Google Doc ID
 --- @field requests table[] - the Google Doc ID
---- @field callback fun(object)  called with the response content
+--- @field callback fun(object) | nil  called with the response content
 
 --- Fetches the content of a Google Doc
 ---
 --- @param this GoogleDocsApi
 --- @param params BatchUpdateParams
 M.batch_update = function(this, params)
-  -- todo: output the vim function that can be used to run auth
-  assert(this.auth_state.access_token, "Not authorized to make google calls")
+  assert(this.auth_state and this.auth_state.access_token,
+    "Not authorized to make google calls. See reauthorize_google_api()")
   local url = "https://docs.googleapis.com/v1/documents/" .. params.document_id .. ":batchUpdate"
 
   local on_response = vim.schedule_wrap(function(response)
@@ -292,11 +298,6 @@ M.batch_update = function(this, params)
     callback = on_response
   })
 end
-
-
--- ordering matters
-M:clear_and_seed_auth_state()
-M:load_secrets()
 
 
 return M

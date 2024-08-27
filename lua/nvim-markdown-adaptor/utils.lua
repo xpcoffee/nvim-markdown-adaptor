@@ -12,8 +12,12 @@ M.insert_all = function(list, newValues)
   end
 end
 
--- Reads the contents of a file and returns them in a callback
+--- Reads the contents of a file and returns them in a callback
+--- @param path string
+--- @param callback fun(data: string | nil)
 M.read_file = function(path, callback)
+  assert(path, "path is nil")
+  assert(callback, "callback is nil")
   local permission = 256 -- 0400 in octal; only user can read
   uv.fs_open(path, "r", permission, function(err, fd)
     assert(not err, err)
@@ -58,6 +62,9 @@ M.read_file = function(path, callback)
   end)
 end
 
+--- @param path string
+--- @param file_contents string
+--- @param callback fun() | nil
 M.write_file = function(path, file_contents, callback)
   local permission = 384 -- 0600 in octal; only user can read/write
   uv.fs_open(path, "w", permission, function(err, fd)
@@ -70,7 +77,9 @@ M.write_file = function(path, file_contents, callback)
       assert(not err, err)
       uv.fs_close(fd, function(err)
         assert(not err, err)
-        callback()
+        if callback then
+          callback()
+        end
       end)
     end)
   end)
