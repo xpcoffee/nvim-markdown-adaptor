@@ -2,9 +2,8 @@
 
 [Neovim](https://neovim.io/) plugin which adapts markdown files to external targets (one-way sync).
 
-> ❗❗WARNING❗❗
-> This repo is real-buggy, and not ready for public consumption. Use at your own risk.
-> ❗❗WARNING❗❗
+> [!caution]
+> This repo is real-buggy, and not yet ready for public-consumption. Use at your own risk.
 
 ## Goals (as of 2024-08)
 
