@@ -22,7 +22,7 @@ paragraph 3 [link 1 desc](link 1 dest)
   - unordered list pt 3, subpt 1
     - unordered list pt 3, subpt 1, subsubpt2
 
-paragraph 3
+paragraph 4
 
 1.  ordered list pt 1
 1.  ordered list pt 2
@@ -30,9 +30,14 @@ paragraph 3
 
 ## Heading 2 - no 2
 
-paragraph 4
+paragraph 5
 [link 1 desc](link 2 dest)
 
 ```typescript
-code block
+type Params {}
+
+function (params: Params): Result {
+    // do some work
+    return new Result()
+}
 ```
