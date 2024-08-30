@@ -91,6 +91,23 @@ TODO: grab document ID from the frontmatter or allow input.
 
 Progress made while figuring out how to get htis to work.
 
+### 2024-08-30
+
+Completely stuck on parsing deeper contents of paragraphs:
+
+- the deeper nodes (links etc) are not available as children of TSNode
+- I think this is because the main tree is parsed as "markdown", but deeper nodes are "markdown-inline", a different parsing language
+- I've tried
+  - reparsing paragraphs using "markdown-inline", but that outputs the whole document everytime; I can't seem to only generate a node for the paragraph..
+  - getting the results of markdown-inline to appear as part of the same tree using language injection, but I haven't gotten this to work; I feel I'm fundamentally misunderstanding something about how tree-sitter language trees work
+- I have the same trouble in extracting frontmatter content using the tree
+
+I've spent too much time on trying to get these to work. So will do another tactic.
+Possible hacks moving forwards (would realllly like to revert these in the future)
+
+- use regex for links and substitute them them out with only the description once we've captured destination and index (index needed to add styling in adaptor)
+- scan between `---` and manually parse for frontmatter
+
 ### 2024-08-27
 
 Quite close to a working prototype now

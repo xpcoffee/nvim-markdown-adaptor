@@ -23,7 +23,13 @@ local function replace_gdoc_contents(document, update_requests)
   end
   utils.insert_all(requests, update_requests)
 
-  gapi:batch_update({ requests = requests, document_id = document.documentId })
+  gapi:batch_update({
+    requests = requests,
+    document_id = document.documentId,
+    callback = function()
+      print("Markdown synced to https://docs.google.com/document/d/" .. document.documentId)
+    end
+  })
 end
 
 local function to_gdocs_update_requests(elements, opts)
@@ -177,7 +183,6 @@ end
 M.sync_to_google_doc = function(params)
   local elements = parser.parse_current_buffer()
   local update_requests = to_gdocs_update_requests(elements)
-  print(vim.json.encode(update_requests))
   if #update_requests == 0 then
     print("No content. Stopping.")
     return

@@ -279,6 +279,11 @@ M.batch_update = function(this, params)
   local url = "https://docs.googleapis.com/v1/documents/" .. params.document_id .. ":batchUpdate"
 
   local on_response = vim.schedule_wrap(function(response)
+    if response.status ~= 200 then
+      error(vim.json.encode(response))
+      return
+    end
+
     local body = vim.json.decode(response.body)
 
     if params.callback then

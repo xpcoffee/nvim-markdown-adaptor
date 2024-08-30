@@ -12,11 +12,15 @@ paragraph 1 - line 2
 paragraph 2 - line 1
 paragraph 2 - line 2
 
-paragraph 3
+paragraph 3 [link 1 desc](link 1 dest)
 
 - unordered list pt 1
+  - unordered list pt 1, subpt 1
+  - unordered list pt 1, subpt 2
 - unordered list pt 2
 - unordered list pt 3
+  - unordered list pt 3, subpt 1
+    - unordered list pt 3, subpt 1, subsubpt2
 
 paragraph 3
 
@@ -27,6 +31,7 @@ paragraph 3
 ## Heading 2 - no 2
 
 paragraph 4
+[link 1 desc](link 2 dest)
 
 ```typescript
 code block
