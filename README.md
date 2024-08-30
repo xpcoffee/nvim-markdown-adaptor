@@ -89,7 +89,11 @@ TODO: grab document ID from the frontmatter or allow input.
 
 ## Research
 
-Progress made while figuring out how to get htis to work.
+Progress made while figuring out how to get this to work.
+
+### Current ouptut
+
+<img alt="current output" src="https://github.com/user-attachments/assets/7c4dfe02-0c79-4dea-a570-6f19e12d614b" width="600px">
 
 ### 2024-08-30
 
