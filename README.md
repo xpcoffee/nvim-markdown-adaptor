@@ -27,7 +27,7 @@
 |Basic formatting (bold, italics)| ✗ |
 |Tables| ✗ |
 
-## 📦 Getting started
+## ☕ Getting started
 
 ### Configure a Google Project
 
@@ -102,7 +102,15 @@ TODO: grab document ID from the frontmatter or allow input.
 
 - We currently do not check expiry of the OAuth refresh-token. Need to trigger `reauthorize_google_api` manually to get a new one.
 
-## 🔬 Research
+
+## ⚙️ How things work so far
+
+![workflow diagram](https://github.com/user-attachments/assets/5096dec4-9c9d-44f2-ae16-c9c3e024cc32)
+
+TODO: add sequence diagram for google oauth
+
+
+##  ⌨️ Research
 
 A running log of progress and thoughts that will stay here for reference until we get this thing to work.
 
