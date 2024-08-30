@@ -5,6 +5,10 @@
 > [!caution]
 > This repo is real-buggy, and not yet ready for public-consumption. Use at your own risk.
 
+> [!note]
+> This repo is open to pull requests, if you want to contribute. Review time can take 2-3 days.
+
+
 ## ⛰️ Goals (as of 2024-08)
 
 - What: be able to sync a markdown file to/from a target, initially google-docs.
@@ -15,6 +19,7 @@
 
 ## 🛠️ Features 
 
+Outlines the features I'd like to have overall.
 
 ||Google Docs|
 |-|-|
@@ -26,6 +31,7 @@
 |Links| ✗ |
 |Basic formatting (bold, italics)| ✗ |
 |Tables| ✗ |
+|Title| ✗ |
 
 ## ☕ Getting started
 
