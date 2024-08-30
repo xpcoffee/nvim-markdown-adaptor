@@ -5,14 +5,29 @@
 > [!caution]
 > This repo is real-buggy, and not yet ready for public-consumption. Use at your own risk.
 
-## Goals (as of 2024-08)
+## ⛰️ Goals (as of 2024-08)
 
 - What: be able to sync a markdown file to/from a target, initially google-docs.
 - Why: keep your files in markdown; adapt them into what you need, when you need it.
 
 <img src="https://github.com/user-attachments/assets/bfdfb53f-13b9-4c2e-8caf-6cf5130846f8" width="300px;"></img>
 
-## Getting started
+
+## 🛠️ Features 
+
+
+||Google Docs|
+|-|-|
+|Example| <img alt="current output" src="https://github.com/user-attachments/assets/7c4dfe02-0c79-4dea-a570-6f19e12d614b" width="400px">
+|3rd party authorizaton|✔|
+|Headings|✔|
+|Unformatted content|✔|
+|Lists (ordered, unordered, checklist)|✔|
+|Links| ✗ |
+|Basic formatting (bold, italics)| ✗ |
+|Tables| ✗ |
+
+## 📦 Getting started
 
 ### Configure a Google Project
 
@@ -83,17 +98,13 @@ require "nvim-markdown-adaptor".reauthorize_google_api()
 
 TODO: grab document ID from the frontmatter or allow input.
 
-## Known issues
+## 🐛 Known issues
 
 - We currently do not check expiry of the OAuth refresh-token. Need to trigger `reauthorize_google_api` manually to get a new one.
 
-## Research
+## 🔬 Research
 
-Progress made while figuring out how to get this to work.
-
-### Current ouptut
-
-<img alt="current output" src="https://github.com/user-attachments/assets/7c4dfe02-0c79-4dea-a570-6f19e12d614b" width="600px">
+A running log of progress and thoughts that will stay here for reference until we get this thing to work.
 
 ### 2024-08-30
 
