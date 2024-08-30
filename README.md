@@ -81,7 +81,7 @@ If you want to use a `config` clause, you need to call `setup()` with opts.
 ### Opts
 
 - `google_client_file_path` | required | _string_ | _default: nil_ | A path to persist data, incl OAuth2 refresh token. If left empty, no data will be persisted. e.g. you'll need to authorize every session.
-- `data_file_path` | optional | _string_ | _default: nil_ | A path to persist data, incl OAuth2 refresh token. If left empty, no data will be persisted. e.g. you'll need to authorize every session.
+- `data_file_path` | optional | _string_ | _default: nil_ | A path to persist data, incl OAuth2 refresh token. If left empty, no data will be persisted. e.g. you'll need to authorize every session. If specified, ensure the file actually exists (it doesn't get auto-created).
 - `google_oauth_redirect_port` | optional | _string_ | _default: "9090"_ | The port to use when listening to OAuth2 loopback
 
 ### Usage
