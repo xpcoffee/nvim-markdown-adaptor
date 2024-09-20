@@ -11,12 +11,12 @@
 > This repo is open to pull requests, if you want to contribute. Review time can take 2-3 days.
 
 
-## ⛰️ Goals (as of 2024-08)
+## ☕ About
 
 - What: be able to sync a markdown file to/from a target, initially google-docs.
 - Why: keep your files in markdown; adapt them into what you need, when you need it.
 
-## 🛠️ Features 
+## ⚙️ Features 
 
 Outlines the features I'd like to have overall.
 
@@ -32,7 +32,7 @@ Outlines the features I'd like to have overall.
 |Tables| ✗ |
 |Title| ✗ |
 
-## ☕ Getting started
+## ⌨️ Getting started
 
 ### Configure a Google Project
 
@@ -108,14 +108,14 @@ TODO: grab document ID from the frontmatter or allow input.
 - We currently do not check expiry of the OAuth refresh-token. Need to trigger `reauthorize_google_api` manually to get a new one.
 
 
-## ⚙️ How things work so far
+## 📖 How things work so far
 
 ![workflow diagram](https://github.com/user-attachments/assets/5096dec4-9c9d-44f2-ae16-c9c3e024cc32)
 
 TODO: add sequence diagram for google oauth
 
 
-##  ⌨️ Research
+## 🔍 Research
 
 A running log of progress and thoughts that will stay here for reference until we get this thing to work.
 
