@@ -2,19 +2,15 @@
 
 <img src="https://github.com/user-attachments/assets/bfdfb53f-13b9-4c2e-8caf-6cf5130846f8" width="200px;"></img>
 
-[Neovim](https://neovim.io/) plugin which adapts markdown files to external targets (one-way sync).
+This is a neovim plugin which adapts/syncs markdown files to external targets (one-way sync). 
 
-> [!caution]
-> This repo is real-buggy, and not yet ready for public-consumption. Use at your own risk.
-
-> [!note]
-> This repo is open to pull requests, if you want to contribute. Review time can take 2-3 days.
-
+Currently only syncs to Google docs, and there is patchy support for paragraph elements. 
 
 ## ☕ About
 
-- What: be able to sync a markdown file to/from a target, initially google-docs.
-- Why: keep your files in markdown; adapt them into what you need, when you need it.
+The context behind this, is that I keep all my notes as private markdown files. It has been annoying to try to share these files; I end up with a lot of duplicates and I end up with drift between shared notes and my private ones.
+
+My ideal workflow is to keep my private notes as my source of truth, and then trigger workflows to sync them to a place that can be shared. Since I edit my notes in neovim, it makes sense to me to have this workflow run there.
 
 ## ⚙️ Features 
 
