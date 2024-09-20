@@ -1,6 +1,6 @@
 # nvim-markdown-adaptor
 
-<img src="https://github.com/user-attachments/assets/bfdfb53f-13b9-4c2e-8caf-6cf5130846f8" width="300px;"></img>
+<img src="https://github.com/user-attachments/assets/bfdfb53f-13b9-4c2e-8caf-6cf5130846f8" width="200px;"></img>
 
 [Neovim](https://neovim.io/) plugin which adapts markdown files to external targets (one-way sync).
 
